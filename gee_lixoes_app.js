@@ -246,7 +246,7 @@ var sidePanel = ui.Panel({
 
 var mapPanel = ui.Map();
 mapPanel.setCenter(CONFIG.mapCenter.lon, CONFIG.mapCenter.lat, CONFIG.mapZoom);
-mapPanel.setOptions('HYBRID'); // Base map híbrido (satélite + nomes)
+mapPanel.setOptions('hybrid'); // Base map híbrido (satélite + nomes)
 mapPanel.style().set('cursor', 'crosshair');
 
 // ===========================
@@ -262,32 +262,30 @@ function createHeader() {
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
       backgroundColor: '#1a252f',
-      padding: '24px 20px',
-      margin: '0 0 15px 0',
-      border: '0px solid #34495e'
+      padding: '20px 16px',
+      margin: '0 0 15px 0'
     }
   });
 
-  var title = ui.Label('ANÁLISE DE PROBABILIDADE DE LIXÕES', {
-    fontSize: '20px',
-    fontWeight: '900',
-    color: '#FFFFFF',
-    margin: '0 0 10px 0',
-    padding: '0',
-    fontFamily: 'monospace',
-    textAlign: 'center',
-    whiteSpace: 'pre',
-    stretch: 'horizontal'
+  var title = ui.Label({
+    value: 'ANÁLISE DE PROBABILIDADE DE LIXÕES',
+    style: {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: 'white',
+      margin: '0 0 8px 0',
+      padding: '0'
+    }
   });
 
-  var subtitle = ui.Label('Sistema de Monitoramento e Análise Espacial | Google Earth Engine', {
-    fontSize: '12px',
-    color: '#ecf0f1',
-    fontStyle: 'normal',
-    margin: '0',
-    padding: '0',
-    textAlign: 'center',
-    stretch: 'horizontal'
+  var subtitle = ui.Label({
+    value: 'Sistema de Monitoramento e Análise Espacial | Google Earth Engine',
+    style: {
+      fontSize: '11px',
+      color: '#bdc3c7',
+      margin: '0',
+      padding: '0'
+    }
   });
 
   header.add(title);
@@ -312,7 +310,7 @@ function createFilterSection(vectorData, probColumns) {
     }
   });
 
-  filterPanel.add(ui.Label('🔎 FILTROS ESPACIAIS', {
+  filterPanel.add(ui.Label('FILTROS ESPACIAIS', {
     fontWeight: 'bold',
     fontSize: '15px',
     color: '#1a252f',
@@ -322,7 +320,7 @@ function createFilterSection(vectorData, probColumns) {
   }));
 
   // Filtro de estado
-  var stateLabel = ui.Label('🗺️ Estado (UF):', {
+  var stateLabel = ui.Label('Estado (UF):', {
     fontSize: '13px',
     color: '#2c3e50',
     margin: '8px 0 5px 0',
@@ -340,7 +338,7 @@ function createFilterSection(vectorData, probColumns) {
   });
 
   // Filtro de município
-  var muniLabel = ui.Label('📍 Município:', {
+  var muniLabel = ui.Label('Município:', {
     fontSize: '13px',
     color: '#2c3e50',
     margin: '8px 0 5px 0',
@@ -358,7 +356,7 @@ function createFilterSection(vectorData, probColumns) {
   });
 
   // Campo de busca de município
-  var muniSearchLabel = ui.Label('🔍 Buscar município:', {
+  var muniSearchLabel = ui.Label('Buscar município:', {
     fontSize: '13px',
     color: '#2c3e50',
     margin: '8px 0 5px 0',
@@ -411,7 +409,7 @@ function createFilterSection(vectorData, probColumns) {
   
   // Botão aplicar filtros - otimizado para renderização
   var applyButton = ui.Button({
-    label: '🔍 APLICAR FILTROS',
+    label: 'APLICAR FILTROS',
     style: {
       width: '100%',
       margin: '15px 0 5px 0',
@@ -429,10 +427,118 @@ function createFilterSection(vectorData, probColumns) {
 
   filterPanel.add(applyButton);
 
+  // Separador visual
+  var separator = ui.Panel({
+    style: {
+      height: '1px',
+      backgroundColor: '#bdc3c7',
+      margin: '15px 0'
+    }
+  });
+  filterPanel.add(separator);
+
+  // Controle de opacidade do raster
+  var opacityLabel = ui.Label('Opacidade da camada raster:', {
+    fontSize: '13px',
+    color: '#2c3e50',
+    margin: '8px 0 5px 0',
+    fontWeight: '600'
+  });
+
+  var opacitySlider = ui.Slider({
+    min: 0,
+    max: 1,
+    value: 0.65,
+    step: 0.05,
+    style: {
+      width: '100%',
+      margin: '0 0 8px 0'
+    }
+  });
+
+  var opacityValueLabel = ui.Label('65%', {
+    fontSize: '11px',
+    color: '#7f8c8d',
+    margin: '0 0 12px 0',
+    textAlign: 'center',
+    stretch: 'horizontal'
+  });
+
+  opacitySlider.onChange(function(value) {
+    opacityValueLabel.setValue((value * 100).toFixed(0) + '%');
+    updateVisualization();
+  });
+
+  filterPanel.add(opacityLabel);
+  filterPanel.add(opacitySlider);
+  filterPanel.add(opacityValueLabel);
+
+  // Checkboxes para controle de camadas
+  var layersLabel = ui.Label('Visibilidade das camadas:', {
+    fontSize: '13px',
+    color: '#2c3e50',
+    margin: '15px 0 5px 0',
+    fontWeight: '600'
+  });
+  filterPanel.add(layersLabel);
+
+  var rasterCheckbox = ui.Checkbox({
+    label: 'Exibir camada raster',
+    value: true,
+    style: {
+      margin: '5px 0',
+      fontSize: '12px'
+    }
+  });
+
+  var vectorCheckbox = ui.Checkbox({
+    label: 'Exibir polígonos',
+    value: true,
+    style: {
+      margin: '5px 0 12px 0',
+      fontSize: '12px'
+    }
+  });
+
+  rasterCheckbox.onChange(updateVisualization);
+  vectorCheckbox.onChange(updateVisualization);
+
+  filterPanel.add(rasterCheckbox);
+  filterPanel.add(vectorCheckbox);
+
+  // Botão de reset
+  var resetButton = ui.Button({
+    label: 'RESETAR VISUALIZAÇÃO',
+    style: {
+      width: '100%',
+      margin: '8px 0 0 0',
+      backgroundColor: '#95a5a6',
+      color: '#FFFFFF',
+      padding: '10px 16px',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      textAlign: 'center'
+    },
+    onClick: function() {
+      stateSelect.setValue('Todos');
+      muniSelect.setValue('Todos');
+      opacitySlider.setValue(0.65);
+      rasterCheckbox.setValue(true);
+      vectorCheckbox.setValue(true);
+      mapPanel.setCenter(CONFIG.mapCenter.lon, CONFIG.mapCenter.lat, CONFIG.mapZoom);
+      updateVisualization();
+    }
+  });
+
+  filterPanel.add(resetButton);
+
   return {
     panel: filterPanel,
     stateSelect: stateSelect,
-    muniSelect: muniSelect
+    muniSelect: muniSelect,
+    opacitySlider: opacitySlider,
+    rasterCheckbox: rasterCheckbox,
+    vectorCheckbox: vectorCheckbox
   };
 }
 
@@ -452,7 +558,7 @@ function createMetricsPanel() {
     }
   });
 
-  metricsPanel.add(ui.Label('📊 MÉTRICAS E ESTATÍSTICAS', {
+  metricsPanel.add(ui.Label('MÉTRICAS E ESTATÍSTICAS', {
     fontWeight: 'bold',
     fontSize: '15px',
     color: '#1a252f',
@@ -462,13 +568,13 @@ function createMetricsPanel() {
   }));
 
   // Placeholders para métricas principais
-  var totalLabel = ui.Label('🎯 Total de ocorrências: -', {
+  var totalLabel = ui.Label('Total de ocorrências: -', {
     fontSize: '13px',
     color: '#2c3e50',
     margin: '6px 0',
     fontWeight: '600'
   });
-  var avgProbLabel = ui.Label('📈 Probabilidade média: -', {
+  var avgProbLabel = ui.Label('Probabilidade média: -', {
     fontSize: '13px',
     color: '#2c3e50',
     margin: '6px 0 14px 0',
@@ -487,7 +593,7 @@ function createMetricsPanel() {
     }
   });
 
-  rangePanel.add(ui.Label('📉 DISTRIBUIÇÃO POR FAIXA', {
+  rangePanel.add(ui.Label('DISTRIBUIÇÃO POR FAIXA', {
     fontWeight: 'bold',
     fontSize: '12px',
     color: '#1a252f',
@@ -496,19 +602,19 @@ function createMetricsPanel() {
     stretch: 'horizontal'
   }));
 
-  var lowLabel = ui.Label('🟢 Baixa (0-75%): -', {
+  var lowLabel = ui.Label('Baixa (0-75%): -', {
     fontSize: '12px',
     color: '#2e7d32',
     margin: '5px 0',
     fontWeight: '600'
   });
-  var medLabel = ui.Label('🟠 Média (75-89%): -', {
+  var medLabel = ui.Label('Média (75-89%): -', {
     fontSize: '12px',
     color: '#e65100',
     margin: '5px 0',
     fontWeight: '600'
   });
-  var highLabel = ui.Label('🔴 Alta (89-100%): -', {
+  var highLabel = ui.Label('Alta (89-100%): -', {
     fontSize: '12px',
     color: '#c62828',
     margin: '5px 0',
@@ -548,7 +654,7 @@ function createLegend() {
     }
   });
 
-  legend.add(ui.Label('📍 PROBABILIDADE DE LIXÃO', {
+  legend.add(ui.Label('PROBABILIDADE DE LIXÃO', {
     fontWeight: 'bold',
     fontSize: '13px',
     color: '#1a252f',
@@ -559,9 +665,9 @@ function createLegend() {
 
   // Três faixas de probabilidade
   var ranges = [
-    {color: '#4CAF50', label: 'Baixa', icon: '🟢', border: '#2e7d32'},
-    {color: '#FF9800', label: 'Média', icon: '🟠', border: '#e65100'},
-    {color: '#F44336', label: 'Alta', icon: '🔴', border: '#b71c1c'}
+    {color: '#4CAF50', label: 'Baixa', border: '#2e7d32'},
+    {color: '#FF9800', label: 'Média', border: '#e65100'},
+    {color: '#F44336', label: 'Alta', border: '#b71c1c'}
   ];
 
   ranges.forEach(function(range) {
@@ -574,7 +680,7 @@ function createLegend() {
       borderRadius: '3px'
     });
 
-    var label = ui.Label(range.icon + ' ' + range.label, {
+    var label = ui.Label(range.label, {
       margin: '0',
       fontSize: '12px',
       fontWeight: '600',
@@ -609,7 +715,7 @@ function createMapTitle() {
     }
   });
 
-  var title = ui.Label('🗺️ ANÁLISE DE PROBABILIDADE DE LIXÕES', {
+  var title = ui.Label('ANÁLISE DE PROBABILIDADE DE LIXÕES', {
     fontSize: '18px',
     fontWeight: 'bold',
     color: '#FFFFFF',
@@ -660,10 +766,10 @@ function createFooterWithLogos() {
 
   // Texto de apoiadores (pode ser customizado)
   var apoiadoresText = ui.Label(
-    '🏛️ Instituições de Pesquisa\n' +
-    '🌍 Google Earth Engine\n' +
-    '🔬 Laboratórios Parceiros\n' +
-    '📊 Dados Abertos Brasil',
+    'Instituições de Pesquisa\n' +
+    'Google Earth Engine\n' +
+    'Laboratórios Parceiros\n' +
+    'Dados Abertos Brasil',
     {
       fontSize: '11px',
       color: '#555',
@@ -699,8 +805,11 @@ function createFooterWithLogos() {
  * Atualiza visualização com base nos filtros
  */
 function updateVisualization() {
-  // Limpar camadas anteriores
-  mapPanel.clear();
+  // Limpar camadas anteriores (mantém widgets do mapa)
+  var layers = mapPanel.layers();
+  while (layers.length() > 0) {
+    layers.remove(layers.get(0));
+  }
 
   // Usar métrica de probabilidade padrão (primeira disponível)
   var metric = probColumns[0];
@@ -723,15 +832,27 @@ function updateVisualization() {
   
   // Adicionar camadas ao mapa
   // Raster com opacidade otimizada para melhor visualização sobre satélite
-  mapPanel.addLayer(rasterData.select('prob_class0'), {
-    min: 0,
-    max: 1,
-    palette: CONFIG.probabilityPalette
-  }, '🌡️ Probabilidade (Raster)', true, 0.65);
+  var opacity = filters.opacitySlider ? filters.opacitySlider.getValue() : 0.65;
+  var showRaster = filters.rasterCheckbox ? filters.rasterCheckbox.getValue() : true;
+  var showVector = filters.vectorCheckbox ? filters.vectorCheckbox.getValue() : true;
+
+  if (showRaster) {
+    mapPanel.addLayer(rasterData.select('prob_class0'), {
+      min: 0,
+      max: 1,
+      palette: CONFIG.probabilityPalette
+    }, 'Probabilidade (Raster)', true, opacity);
+  }
 
   // Vetor com estilo otimizado
-  mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, '📐 Polígonos Detectados');
-  
+  if (showVector) {
+    mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, 'Polígonos Detectados');
+  }
+
+  // Adicionar título e legenda
+  mapPanel.add(createMapTitle());
+  mapPanel.add(createLegend());
+
   // Centralizar no filtro se específico
   if (muni !== 'Todos' && muni !== null) {
     var bounds = filteredVector.geometry().bounds();
@@ -759,21 +880,17 @@ function updateVisualization() {
 
         // Determinar a faixa de probabilidade
         var faixa = '';
-        var corIcon = '';
         if (prob < 75) {
           faixa = 'Baixa';
-          corIcon = '🟢';
         } else if (prob < 89) {
           faixa = 'Média';
-          corIcon = '🟠';
         } else {
           faixa = 'Alta';
-          corIcon = '🔴';
         }
 
         var infoPanel = ui.Panel({
           widgets: [
-            ui.Label('📋 INFORMAÇÕES DA ÁREA', {
+            ui.Label('INFORMAÇÕES DA ÁREA', {
               fontWeight: 'bold',
               fontSize: '13px',
               color: '#1a252f',
@@ -783,19 +900,19 @@ function updateVisualization() {
               textAlign: 'center',
               stretch: 'horizontal'
             }),
-            ui.Label('🗺️ Estado: ' + props.uf, {
+            ui.Label('Estado: ' + props.uf, {
               fontSize: '12px',
               color: '#2c3e50',
               margin: '4px 0',
               fontWeight: '600'
             }),
-            ui.Label('📍 Município: ' + props.muni_name, {
+            ui.Label('Município: ' + props.muni_name, {
               fontSize: '12px',
               color: '#2c3e50',
               margin: '4px 0',
               fontWeight: '600'
             }),
-            ui.Label(corIcon + ' Probabilidade: ' + probText, {
+            ui.Label('Probabilidade: ' + probText, {
               fontSize: '13px',
               color: prob >= 89 ? '#c62828' : (prob >= 75 ? '#ef6c00' : '#2e7d32'),
               fontWeight: 'bold',
@@ -835,16 +952,16 @@ function updateMetrics(features, probColumn) {
 
   // Atualizar labels básicos com formatação aprimorada
   var totalOcorrencias = count.getInfo();
-  metrics.totalLabel.setValue('🎯 Total de ocorrências: ' + totalOcorrencias);
+  metrics.totalLabel.setValue('Total de ocorrências: ' + totalOcorrencias);
 
   var avgProbValue = (avgProb.getInfo() * 100).toFixed(1).replace('.', ',');
-  metrics.avgProbLabel.setValue('📈 Probabilidade média: ' + avgProbValue + '%');
+  metrics.avgProbLabel.setValue('Probabilidade média: ' + avgProbValue + '%');
 
   // Calcular e exibir distribuição por faixa de probabilidade
   var rangeStats = calculateStatsByRange(features, probColumn);
-  metrics.lowLabel.setValue('🟢 Baixa: ' + rangeStats.baixa + ' áreas');
-  metrics.medLabel.setValue('🟠 Média: ' + rangeStats.media + ' áreas');
-  metrics.highLabel.setValue('🔴 Alta  ' + rangeStats.alta + ' áreas');
+  metrics.lowLabel.setValue('Baixa: ' + rangeStats.baixa + ' áreas');
+  metrics.medLabel.setValue('Média: ' + rangeStats.media + ' áreas');
+  metrics.highLabel.setValue('Alta: ' + rangeStats.alta + ' áreas');
 }
 
 // ===========================
