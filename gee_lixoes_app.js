@@ -40,9 +40,9 @@ var CONFIG = {
   
   // Faixas de probabilidade
   probabilityRanges: {
-    baixa: [0, 0.75],
-    media: [0.75, 0.89],
-    alta: [0.89, 1.0]
+    baixa: [0, 0.72],
+    media: [0.72, 0.81],
+    alta: [0.81, 1.0]
   }
 };
 
@@ -422,8 +422,7 @@ function createFilterSection(vectorData, probColumns) {
       fontWeight: 'bold',
       textAlign: 'center',
       border: '2px solid #1a5490',
-      borderRadius: '4px',
-      cursor: 'pointer'
+      borderRadius: '4px'
     },
     onClick: updateVisualization
   });
@@ -560,9 +559,9 @@ function createLegend() {
 
   // Três faixas de probabilidade
   var ranges = [
-    {color: '#4CAF50', label: 'Baixa (0-75%)', icon: '🟢', border: '#2e7d32'},
-    {color: '#FF9800', label: 'Média (75-89%)', icon: '🟠', border: '#e65100'},
-    {color: '#F44336', label: 'Alta (89-100%)', icon: '🔴', border: '#b71c1c'}
+    {color: '#4CAF50', label: 'Baixa', icon: '🟢', border: '#2e7d32'},
+    {color: '#FF9800', label: 'Média', icon: '🟠', border: '#e65100'},
+    {color: '#F44336', label: 'Alta', icon: '🔴', border: '#b71c1c'}
   ];
 
   ranges.forEach(function(range) {
@@ -815,6 +814,7 @@ function updateVisualization() {
             padding: '16px 18px',
             border: '3px solid #2c3e50',
             borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             maxWidth: '280px'
           }
         });
@@ -842,9 +842,9 @@ function updateMetrics(features, probColumn) {
 
   // Calcular e exibir distribuição por faixa de probabilidade
   var rangeStats = calculateStatsByRange(features, probColumn);
-  metrics.lowLabel.setValue('🟢 Baixa (0-75%): ' + rangeStats.baixa + ' áreas');
-  metrics.medLabel.setValue('🟠 Média (75-89%): ' + rangeStats.media + ' áreas');
-  metrics.highLabel.setValue('🔴 Alta (89-100%): ' + rangeStats.alta + ' áreas');
+  metrics.lowLabel.setValue('🟢 Baixa: ' + rangeStats.baixa + ' áreas');
+  metrics.medLabel.setValue('🟠 Média: ' + rangeStats.media + ' áreas');
+  metrics.highLabel.setValue('🔴 Alta  ' + rangeStats.alta + ' áreas');
 }
 
 // ===========================
