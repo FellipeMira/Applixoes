@@ -148,25 +148,29 @@ function calculateStatsByState(vectorData, probColumn) {
 
 /**
  * Estilo para features vetoriais por probabilidade
+ * Usa as faixas definidas em CONFIG.probabilityRanges
  */
 function getFeatureStyle(feature, probColumn) {
   var prob = ee.Number(feature.get(probColumn));
-  
-  // Cor baseada na probabilidade
+
+  // Paleta de cores baseada nas faixas de probabilidade
+  // Baixa (0-0.75): Verde - #4CAF50
+  // Média (0.75-0.89): Laranja - #FF9800
+  // Alta (0.89-1.0): Vermelho - #F44336
   var color = ee.Algorithms.If(
-    prob.lt(0.33), '#2166ac',
+    prob.lt(0.75), '#4CAF50',
     ee.Algorithms.If(
-      prob.lt(0.66), '#f4a582',
-      '#b2182b'
+      prob.lt(0.89), '#FF9800',
+      '#F44336'
     )
   );
-  
+
   return feature.set({
     style: {
-      color: 'black',
+      color: '#333333',      // Borda cinza escura
       fillColor: color,
-      width: 1,
-      fillOpacity: 0.7
+      width: 1.5,
+      fillOpacity: 0.75
     }
   });
 }
@@ -191,7 +195,11 @@ var mainPanel = ui.Panel({
 });
 
 var sidePanel = ui.Panel({
-  style: {width: '400px', padding: '10px'}
+  style: {
+    width: '420px',
+    padding: '15px',
+    backgroundColor: '#f5f7fa'
+  }
 });
 
 var mapPanel = ui.Map();
@@ -209,26 +217,29 @@ function createHeader() {
   var header = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#f0f0f0',
-      padding: '15px',
-      margin: '0 0 10px 0'
+      backgroundColor: '#2c3e50',
+      padding: '20px',
+      margin: '0 0 15px 0',
+      border: '0px'
     }
   });
-  
+
   var title = ui.Label('Análise de Probabilidade de Lixões', {
-    fontSize: '24px',
+    fontSize: '22px',
     fontWeight: 'bold',
-    color: '#333'
+    color: '#ffffff',
+    margin: '0 0 8px 0'
   });
-  
+
   var subtitle = ui.Label('Sistema de monitoramento e análise espacial', {
-    fontSize: '14px',
-    color: '#666'
+    fontSize: '13px',
+    color: '#ecf0f1',
+    fontStyle: 'italic'
   });
-  
+
   header.add(title);
   header.add(subtitle);
-  
+
   return header;
 }
 
@@ -239,46 +250,55 @@ function createFilterSection(vectorData, probColumns) {
   var filterPanel = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#fff',
-      padding: '10px',
-      margin: '10px 0',
-      border: '1px solid #ddd'
+      backgroundColor: '#ffffff',
+      padding: '18px',
+      margin: '0 0 15px 0',
+      border: '1px solid #e0e0e0'
     }
   });
-  
-  filterPanel.add(ui.Label('Filtros', {fontWeight: 'bold', fontSize: '16px'}));
-  
-  // Seletor de métrica
-  var metricLabel = ui.Label('Métrica de probabilidade:');
-  var metricSelect = ui.Select({
-    items: probColumns,
-    value: probColumns[0],
-    style: {width: '100%'}
-  });
-  
+
+  filterPanel.add(ui.Label('Filtros', {
+    fontWeight: 'bold',
+    fontSize: '16px',
+    color: '#2c3e50',
+    margin: '0 0 12px 0'
+  }));
+
   // Filtro de estado
-  var stateLabel = ui.Label('Estado (UF):');
+  var stateLabel = ui.Label('Estado (UF):', {
+    fontSize: '13px',
+    color: '#555',
+    margin: '8px 0 4px 0'
+  });
   var states = ['Todos'].concat(getUniqueStates(vectorData));
   var stateSelect = ui.Select({
     items: states,
     value: 'Todos',
-    style: {width: '100%'}
+    style: {width: '100%', margin: '0 0 10px 0'}
   });
-  
+
   // Filtro de município
-  var muniLabel = ui.Label('Município:');
+  var muniLabel = ui.Label('Município:', {
+    fontSize: '13px',
+    color: '#555',
+    margin: '8px 0 4px 0'
+  });
   var muniSelect = ui.Select({
     items: ['Todos'],
     value: 'Todos',
-    style: {width: '100%'},
+    style: {width: '100%', margin: '0 0 10px 0'},
     disabled: true
   });
-  
+
   // Campo de busca de município
-  var muniSearchLabel = ui.Label('Buscar município:');
+  var muniSearchLabel = ui.Label('Buscar município:', {
+    fontSize: '13px',
+    color: '#555',
+    margin: '8px 0 4px 0'
+  });
   var muniSearchBox = ui.Textbox({
     placeholder: 'Digite para buscar...',
-    style: {width: '100%'},
+    style: {width: '100%', margin: '0 0 10px 0'},
     disabled: true
   });
   
@@ -309,9 +329,7 @@ function createFilterSection(vectorData, probColumns) {
       muniSelect.items().reset(['Todos'].concat(filtered));
     }
   });
-  
-  filterPanel.add(metricLabel);
-  filterPanel.add(metricSelect);
+
   filterPanel.add(stateLabel);
   filterPanel.add(stateSelect);
   filterPanel.add(muniLabel);
@@ -322,15 +340,20 @@ function createFilterSection(vectorData, probColumns) {
   // Botão aplicar filtros
   var applyButton = ui.Button({
     label: 'Aplicar Filtros',
-    style: {width: '100%', margin: '10px 0'},
+    style: {
+      width: '100%',
+      margin: '15px 0 5px 0',
+      backgroundColor: '#3498db',
+      color: '#ffffff',
+      padding: '10px'
+    },
     onClick: updateVisualization
   });
   
   filterPanel.add(applyButton);
-  
+
   return {
     panel: filterPanel,
-    metricSelect: metricSelect,
     stateSelect: stateSelect,
     muniSelect: muniSelect
   };
@@ -343,28 +366,63 @@ function createMetricsPanel() {
   var metricsPanel = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#fff',
-      padding: '10px',
-      margin: '10px 0',
-      border: '1px solid #ddd'
+      backgroundColor: '#ffffff',
+      padding: '18px',
+      margin: '0 0 15px 0',
+      border: '1px solid #e0e0e0'
     }
   });
-  
-  metricsPanel.add(ui.Label('Métricas', {fontWeight: 'bold', fontSize: '16px'}));
-  
+
+  metricsPanel.add(ui.Label('Métricas', {
+    fontWeight: 'bold',
+    fontSize: '16px',
+    color: '#2c3e50',
+    margin: '0 0 12px 0'
+  }));
+
   // Placeholders para métricas
-  var totalLabel = ui.Label('Total de ocorrências: -');
-  var avgProbLabel = ui.Label('Probabilidade média: -');
-  
+  var totalLabel = ui.Label('Total de ocorrências: -', {
+    fontSize: '13px',
+    color: '#555',
+    margin: '4px 0'
+  });
+  var avgProbLabel = ui.Label('Probabilidade média: -', {
+    fontSize: '13px',
+    color: '#555',
+    margin: '4px 0 12px 0'
+  });
+
   var rangePanel = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
-    style: {margin: '10px 0'}
+    style: {
+      margin: '12px 0 0 0',
+      padding: '12px',
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #e9ecef'
+    }
   });
-  
-  rangePanel.add(ui.Label('Por faixa de probabilidade:', {fontWeight: 'bold'}));
-  var lowLabel = ui.Label('Baixa (0-33%): -');
-  var medLabel = ui.Label('Média (33-66%): -');
-  var highLabel = ui.Label('Alta (66-100%): -');
+
+  rangePanel.add(ui.Label('Por faixa de probabilidade:', {
+    fontWeight: 'bold',
+    fontSize: '13px',
+    color: '#2c3e50',
+    margin: '0 0 8px 0'
+  }));
+  var lowLabel = ui.Label('🟢 Baixa (0-75%): -', {
+    fontSize: '13px',
+    color: '#4CAF50',
+    margin: '4px 0'
+  });
+  var medLabel = ui.Label('🟠 Média (75-89%): -', {
+    fontSize: '13px',
+    color: '#FF9800',
+    margin: '4px 0'
+  });
+  var highLabel = ui.Label('🔴 Alta (89-100%): -', {
+    fontSize: '13px',
+    color: '#F44336',
+    margin: '4px 0'
+  });
   
   rangePanel.add(lowLabel);
   rangePanel.add(medLabel);
@@ -391,35 +449,50 @@ function createLegend() {
   var legend = ui.Panel({
     style: {
       position: 'bottom-right',
-      padding: '8px 15px',
-      backgroundColor: 'white'
+      padding: '12px 18px',
+      backgroundColor: 'white',
+      border: '2px solid #333'
     }
   });
-  
-  legend.add(ui.Label('Probabilidade de Lixão', {fontWeight: 'bold'}));
-  
-  var colors = ['#2166ac', '#4393c3', '#92c5de', '#d1e5f0', '#f7f7f7', 
-                '#fddbc7', '#f4a582', '#d6604d', '#b2182b'];
-  var labels = ['0%', '12,5%', '25%', '37,5%', '50%', '62,5%', '75%', '87,5%', '100%'];
-  
-  colors.forEach(function(color, i) {
+
+  legend.add(ui.Label('Probabilidade de Lixão', {
+    fontWeight: 'bold',
+    fontSize: '14px',
+    color: '#2c3e50',
+    margin: '0 0 10px 0'
+  }));
+
+  // Três faixas de probabilidade
+  var ranges = [
+    {color: '#4CAF50', label: 'Baixa (0-75%)', icon: '🟢'},
+    {color: '#FF9800', label: 'Média (75-89%)', icon: '🟠'},
+    {color: '#F44336', label: 'Alta (89-100%)', icon: '🔴'}
+  ];
+
+  ranges.forEach(function(range) {
     var colorBox = ui.Label('', {
-      backgroundColor: color,
-      padding: '10px',
-      margin: '0 5px 0 0',
-      width: '20px'
+      backgroundColor: range.color,
+      padding: '12px',
+      margin: '0 8px 0 0',
+      width: '30px',
+      border: '1px solid #333'
     });
-    
-    var label = ui.Label(labels[i], {margin: '0 10px 0 0'});
-    
+
+    var label = ui.Label(range.icon + ' ' + range.label, {
+      margin: '0',
+      fontSize: '13px',
+      color: '#333'
+    });
+
     var row = ui.Panel({
       widgets: [colorBox, label],
-      layout: ui.Panel.Layout.flow('horizontal')
+      layout: ui.Panel.Layout.flow('horizontal'),
+      style: {margin: '5px 0'}
     });
-    
+
     legend.add(row);
   });
-  
+
   return legend;
 }
 
@@ -464,9 +537,9 @@ function addLogos(logoUrls) {
 function updateVisualization() {
   // Limpar camadas anteriores
   mapPanel.clear();
-  
-  // Obter valores dos filtros
-  var metric = filters.metricSelect.getValue();
+
+  // Usar métrica de probabilidade padrão (primeira disponível)
+  var metric = probColumns[0];
   var state = filters.stateSelect.getValue();
   var muni = filters.muniSelect.getValue();
   
@@ -509,22 +582,63 @@ function updateVisualization() {
   mapPanel.onClick(function(coords) {
     var point = ee.Geometry.Point(coords.lon, coords.lat);
     var clicked = styledVector.filterBounds(point);
-    
+
     clicked.evaluate(function(features) {
       if (features.features.length > 0) {
         var feat = features.features[0];
         var props = feat.properties;
-        
-        var info = 'Estado: ' + props.uf + '\n' +
-                   'Município: ' + props.muni_name + '\n' +
-                   'Probabilidade (' + metric + '): ' + 
-                   (props[metric] * 100).toFixed(1).replace('.', ',') + '%';
-        
-        mapPanel.add(ui.Panel([ui.Label(info)], ui.Panel.Layout.flow('vertical'), {
-          position: 'bottom-left',
-          backgroundColor: 'white',
-          padding: '10px'
-        }));
+
+        var prob = props[metric] * 100;
+        var probText = prob.toFixed(1).replace('.', ',') + '%';
+
+        // Determinar a faixa de probabilidade
+        var faixa = '';
+        var corIcon = '';
+        if (prob < 75) {
+          faixa = 'Baixa';
+          corIcon = '🟢';
+        } else if (prob < 89) {
+          faixa = 'Média';
+          corIcon = '🟠';
+        } else {
+          faixa = 'Alta';
+          corIcon = '🔴';
+        }
+
+        var infoPanel = ui.Panel({
+          widgets: [
+            ui.Label('Informações da Área', {
+              fontWeight: 'bold',
+              fontSize: '14px',
+              color: '#2c3e50',
+              margin: '0 0 8px 0'
+            }),
+            ui.Label('Estado: ' + props.uf, {
+              fontSize: '12px',
+              color: '#555',
+              margin: '2px 0'
+            }),
+            ui.Label('Município: ' + props.muni_name, {
+              fontSize: '12px',
+              color: '#555',
+              margin: '2px 0'
+            }),
+            ui.Label(corIcon + ' Probabilidade: ' + probText + ' (' + faixa + ')', {
+              fontSize: '12px',
+              color: '#555',
+              fontWeight: 'bold',
+              margin: '6px 0 0 0'
+            })
+          ],
+          style: {
+            position: 'bottom-left',
+            backgroundColor: 'white',
+            padding: '15px',
+            border: '2px solid #2c3e50'
+          }
+        });
+
+        mapPanel.add(infoPanel);
       }
     });
   });
@@ -544,9 +658,9 @@ function updateMetrics(features, probColumn) {
   
   // Calcular por faixa
   var rangeStats = calculateStatsByRange(features, probColumn);
-  metrics.lowLabel.setValue('Baixa: ' + rangeStats.baixa);
-  metrics.medLabel.setValue('Média: ' + rangeStats.media);
-  metrics.highLabel.setValue('Alta: ' + rangeStats.alta);
+  metrics.lowLabel.setValue('🟢 Baixa (0-75%): ' + rangeStats.baixa);
+  metrics.medLabel.setValue('🟠 Média (75-89%): ' + rangeStats.media);
+  metrics.highLabel.setValue('🔴 Alta (89-100%): ' + rangeStats.alta);
 }
 
 // ===========================
