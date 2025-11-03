@@ -1,6 +1,27 @@
 /**
- * Aplicativo GEE - Análise de Probabilidade de Lixões
- * Visualização interativa com filtros por estado/município e métricas agregadas
+ * =====================================================
+ * APLICATIVO GOOGLE EARTH ENGINE
+ * Análise de Probabilidade de Lixões
+ * =====================================================
+ *
+ * DESCRIÇÃO:
+ * Sistema interativo de visualização e análise espacial para
+ * identificação de áreas com probabilidade de lixões utilizando
+ * dados raster e vetoriais processados no Google Earth Engine.
+ *
+ * FUNCIONALIDADES:
+ * - Base map híbrido (satélite + nomes) para melhor contexto
+ * - Visualização com paleta otimizada (azul escuro → vermelho)
+ * - Destaque visual para polígonos de alta probabilidade
+ * - Filtros espaciais por estado e município
+ * - Busca interativa de municípios
+ * - Métricas agregadas e distribuição por faixa
+ * - Popup informativo ao clicar em polígonos
+ * - Interface otimizada para renderização
+ *
+ * VERSÃO: 2.0 - Otimizada e Melhorada
+ * DESENVOLVIDO COM: Google Earth Engine Code Editor
+ * =====================================================
  */
 
 // ===========================
@@ -13,7 +34,7 @@ var CONFIG = {
   vectorAsset: 'projects/lixoes-467518/assets/resultsVect/MEDIAN_IMPROVED_THRESHOLDS_70_MIN_AREAS_1000_SCIKIT_ALL_METRICS_V6',
   
   // Visualização
-  probabilityPalette: ['#2166ac', '#4393c3', '#92c5de', '#d1e5f0', '#f7f7f7', '#fddbc7', '#f4a582', '#d6604d', '#b2182b'],
+  probabilityPalette: ['#050220', '#0f567f', '#1e90ff', '#6dc07a', '#efff36', '#FF0000'],
   mapCenter: {lon: -47.93, lat: -15.78}, // Centro do Brasil
   mapZoom: 4,
   
@@ -149,6 +170,7 @@ function calculateStatsByState(vectorData, probColumn) {
 /**
  * Estilo para features vetoriais por probabilidade
  * Usa as faixas definidas em CONFIG.probabilityRanges
+ * Polígonos de alta probabilidade recebem destaque visual
  */
 function getFeatureStyle(feature, probColumn) {
   var prob = ee.Number(feature.get(probColumn));
@@ -165,12 +187,32 @@ function getFeatureStyle(feature, probColumn) {
     )
   );
 
+  // Destaque para polígonos de alta probabilidade
+  // Alta probabilidade: borda mais grossa (3px) e opacidade máxima (0.95)
+  // Média probabilidade: borda média (2px) e opacidade alta (0.85)
+  // Baixa probabilidade: borda fina (1.5px) e opacidade média (0.65)
+  var borderWidth = ee.Algorithms.If(
+    prob.lt(0.75), 1.5,
+    ee.Algorithms.If(
+      prob.lt(0.89), 2,
+      3
+    )
+  );
+
+  var fillOpacity = ee.Algorithms.If(
+    prob.lt(0.75), 0.65,
+    ee.Algorithms.If(
+      prob.lt(0.89), 0.85,
+      0.95
+    )
+  );
+
   return feature.set({
     style: {
-      color: '#333333',      // Borda cinza escura
+      color: '#000000',      // Borda preta para maior contraste
       fillColor: color,
-      width: 1.5,
-      fillOpacity: 0.75
+      width: borderWidth,
+      fillOpacity: fillOpacity
     }
   });
 }
@@ -196,14 +238,16 @@ var mainPanel = ui.Panel({
 
 var sidePanel = ui.Panel({
   style: {
-    width: '420px',
-    padding: '15px',
-    backgroundColor: '#f5f7fa'
+    width: '430px',
+    padding: '16px',
+    backgroundColor: '#ecf0f1',
+    boxShadow: '2px 0 8px rgba(0,0,0,0.1)'
   }
 });
 
 var mapPanel = ui.Map();
 mapPanel.setCenter(CONFIG.mapCenter.lon, CONFIG.mapCenter.lat, CONFIG.mapZoom);
+mapPanel.setOptions('HYBRID'); // Base map híbrido (satélite + nomes)
 mapPanel.style().set('cursor', 'crosshair');
 
 // ===========================
@@ -212,29 +256,40 @@ mapPanel.style().set('cursor', 'crosshair');
 
 /**
  * Cria cabeçalho do aplicativo
+ * Otimizado para renderização correta no GEE
  */
 function createHeader() {
   var header = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#2c3e50',
-      padding: '20px',
+      backgroundColor: '#1a252f',
+      padding: '24px 20px',
       margin: '0 0 15px 0',
-      border: '0px'
+      border: '0px solid #34495e',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
     }
   });
 
-  var title = ui.Label('Análise de Probabilidade de Lixões', {
-    fontSize: '22px',
-    fontWeight: 'bold',
-    color: '#ffffff',
-    margin: '0 0 8px 0'
+  var title = ui.Label('ANÁLISE DE PROBABILIDADE DE LIXÕES', {
+    fontSize: '20px',
+    fontWeight: '900',
+    color: '#FFFFFF',
+    margin: '0 0 10px 0',
+    padding: '0',
+    fontFamily: 'monospace',
+    textAlign: 'center',
+    whiteSpace: 'pre',
+    stretch: 'horizontal'
   });
 
-  var subtitle = ui.Label('Sistema de monitoramento e análise espacial', {
-    fontSize: '13px',
+  var subtitle = ui.Label('Sistema de Monitoramento e Análise Espacial | Google Earth Engine', {
+    fontSize: '12px',
     color: '#ecf0f1',
-    fontStyle: 'italic'
+    fontStyle: 'normal',
+    margin: '0',
+    padding: '0',
+    textAlign: 'center',
+    stretch: 'horizontal'
   });
 
   header.add(title);
@@ -245,6 +300,7 @@ function createHeader() {
 
 /**
  * Cria seção de filtros
+ * Otimizada para melhor usabilidade e estética
  */
 function createFilterSection(vectorData, probColumns) {
   var filterPanel = ui.Panel({
@@ -253,52 +309,70 @@ function createFilterSection(vectorData, probColumns) {
       backgroundColor: '#ffffff',
       padding: '18px',
       margin: '0 0 15px 0',
-      border: '1px solid #e0e0e0'
+      border: '1px solid #e0e0e0',
+      borderRadius: '4px'
     }
   });
 
-  filterPanel.add(ui.Label('Filtros', {
+  filterPanel.add(ui.Label('🔎 FILTROS ESPACIAIS', {
     fontWeight: 'bold',
-    fontSize: '16px',
-    color: '#2c3e50',
-    margin: '0 0 12px 0'
+    fontSize: '15px',
+    color: '#1a252f',
+    margin: '0 0 14px 0',
+    textAlign: 'center',
+    stretch: 'horizontal'
   }));
 
   // Filtro de estado
-  var stateLabel = ui.Label('Estado (UF):', {
+  var stateLabel = ui.Label('🗺️ Estado (UF):', {
     fontSize: '13px',
-    color: '#555',
-    margin: '8px 0 4px 0'
+    color: '#2c3e50',
+    margin: '8px 0 5px 0',
+    fontWeight: '600'
   });
   var states = ['Todos'].concat(getUniqueStates(vectorData));
   var stateSelect = ui.Select({
     items: states,
     value: 'Todos',
-    style: {width: '100%', margin: '0 0 10px 0'}
+    style: {
+      width: '100%',
+      margin: '0 0 12px 0',
+      padding: '6px'
+    }
   });
 
   // Filtro de município
-  var muniLabel = ui.Label('Município:', {
+  var muniLabel = ui.Label('📍 Município:', {
     fontSize: '13px',
-    color: '#555',
-    margin: '8px 0 4px 0'
+    color: '#2c3e50',
+    margin: '8px 0 5px 0',
+    fontWeight: '600'
   });
   var muniSelect = ui.Select({
     items: ['Todos'],
     value: 'Todos',
-    style: {width: '100%', margin: '0 0 10px 0'},
+    style: {
+      width: '100%',
+      margin: '0 0 12px 0',
+      padding: '6px'
+    },
     disabled: true
   });
 
   // Campo de busca de município
-  var muniSearchLabel = ui.Label('Buscar município:', {
+  var muniSearchLabel = ui.Label('🔍 Buscar município:', {
     fontSize: '13px',
-    color: '#555',
-    margin: '8px 0 4px 0'
+    color: '#2c3e50',
+    margin: '8px 0 5px 0',
+    fontWeight: '600'
   });
   var muniSearchBox = ui.Textbox({
-    placeholder: 'Digite para buscar...',
-    style: {width: '100%', margin: '0 0 10px 0'},
+    placeholder: 'Digite o nome do município...',
+    style: {
+      width: '100%',
+      margin: '0 0 12px 0',
+      padding: '6px'
+    },
     disabled: true
   });
   
@@ -337,19 +411,25 @@ function createFilterSection(vectorData, probColumns) {
   filterPanel.add(muniSearchLabel);
   filterPanel.add(muniSearchBox);
   
-  // Botão aplicar filtros
+  // Botão aplicar filtros - otimizado para renderização
   var applyButton = ui.Button({
-    label: 'Aplicar Filtros',
+    label: '🔍 APLICAR FILTROS',
     style: {
       width: '100%',
       margin: '15px 0 5px 0',
-      backgroundColor: '#3498db',
-      color: '#ffffff',
-      padding: '10px'
+      backgroundColor: '#2980b9',
+      color: '#FFFFFF',
+      padding: '12px 16px',
+      fontSize: '14px',
+      fontWeight: 'bold',
+      textAlign: 'center',
+      border: '2px solid #1a5490',
+      borderRadius: '4px',
+      cursor: 'pointer'
     },
     onClick: updateVisualization
   });
-  
+
   filterPanel.add(applyButton);
 
   return {
@@ -361,6 +441,7 @@ function createFilterSection(vectorData, probColumns) {
 
 /**
  * Cria painel de métricas
+ * Otimizado para melhor visualização e organização
  */
 function createMetricsPanel() {
   var metricsPanel = ui.Panel({
@@ -369,69 +450,82 @@ function createMetricsPanel() {
       backgroundColor: '#ffffff',
       padding: '18px',
       margin: '0 0 15px 0',
-      border: '1px solid #e0e0e0'
+      border: '1px solid #e0e0e0',
+      borderRadius: '4px'
     }
   });
 
-  metricsPanel.add(ui.Label('Métricas', {
+  metricsPanel.add(ui.Label('📊 MÉTRICAS E ESTATÍSTICAS', {
     fontWeight: 'bold',
-    fontSize: '16px',
-    color: '#2c3e50',
-    margin: '0 0 12px 0'
+    fontSize: '15px',
+    color: '#1a252f',
+    margin: '0 0 14px 0',
+    textAlign: 'center',
+    stretch: 'horizontal'
   }));
 
-  // Placeholders para métricas
-  var totalLabel = ui.Label('Total de ocorrências: -', {
+  // Placeholders para métricas principais
+  var totalLabel = ui.Label('🎯 Total de ocorrências: -', {
     fontSize: '13px',
-    color: '#555',
-    margin: '4px 0'
+    color: '#2c3e50',
+    margin: '6px 0',
+    fontWeight: '600'
   });
-  var avgProbLabel = ui.Label('Probabilidade média: -', {
+  var avgProbLabel = ui.Label('📈 Probabilidade média: -', {
     fontSize: '13px',
-    color: '#555',
-    margin: '4px 0 12px 0'
+    color: '#2c3e50',
+    margin: '6px 0 14px 0',
+    fontWeight: '600'
   });
 
+  // Painel de distribuição por faixa
   var rangePanel = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      margin: '12px 0 0 0',
-      padding: '12px',
+      margin: '14px 0 0 0',
+      padding: '14px',
       backgroundColor: '#f8f9fa',
-      border: '1px solid #e9ecef'
+      border: '2px solid #dee2e6',
+      borderRadius: '4px'
     }
   });
 
-  rangePanel.add(ui.Label('Por faixa de probabilidade:', {
+  rangePanel.add(ui.Label('📉 DISTRIBUIÇÃO POR FAIXA', {
     fontWeight: 'bold',
-    fontSize: '13px',
-    color: '#2c3e50',
-    margin: '0 0 8px 0'
+    fontSize: '12px',
+    color: '#1a252f',
+    margin: '0 0 10px 0',
+    textAlign: 'center',
+    stretch: 'horizontal'
   }));
+
   var lowLabel = ui.Label('🟢 Baixa (0-75%): -', {
-    fontSize: '13px',
-    color: '#4CAF50',
-    margin: '4px 0'
+    fontSize: '12px',
+    color: '#2e7d32',
+    margin: '5px 0',
+    fontWeight: '600'
   });
   var medLabel = ui.Label('🟠 Média (75-89%): -', {
-    fontSize: '13px',
-    color: '#FF9800',
-    margin: '4px 0'
+    fontSize: '12px',
+    color: '#e65100',
+    margin: '5px 0',
+    fontWeight: '600'
   });
   var highLabel = ui.Label('🔴 Alta (89-100%): -', {
-    fontSize: '13px',
-    color: '#F44336',
-    margin: '4px 0'
+    fontSize: '12px',
+    color: '#c62828',
+    margin: '5px 0',
+    fontWeight: '600'
   });
-  
+
   rangePanel.add(lowLabel);
   rangePanel.add(medLabel);
   rangePanel.add(highLabel);
-  
+
   metricsPanel.add(totalLabel);
   metricsPanel.add(avgProbLabel);
   metricsPanel.add(rangePanel);
-  
+
   return {
     panel: metricsPanel,
     totalLabel: totalLabel,
@@ -444,50 +538,57 @@ function createMetricsPanel() {
 
 /**
  * Cria legenda para o mapa
+ * Otimizada para melhor visualização e contraste
  */
 function createLegend() {
   var legend = ui.Panel({
     style: {
       position: 'bottom-right',
-      padding: '12px 18px',
-      backgroundColor: 'white',
-      border: '2px solid #333'
+      padding: '16px 20px',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      border: '3px solid #2c3e50',
+      borderRadius: '6px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
     }
   });
 
-  legend.add(ui.Label('Probabilidade de Lixão', {
+  legend.add(ui.Label('📍 PROBABILIDADE DE LIXÃO', {
     fontWeight: 'bold',
-    fontSize: '14px',
-    color: '#2c3e50',
-    margin: '0 0 10px 0'
+    fontSize: '13px',
+    color: '#1a252f',
+    margin: '0 0 12px 0',
+    textAlign: 'center',
+    stretch: 'horizontal'
   }));
 
   // Três faixas de probabilidade
   var ranges = [
-    {color: '#4CAF50', label: 'Baixa (0-75%)', icon: '🟢'},
-    {color: '#FF9800', label: 'Média (75-89%)', icon: '🟠'},
-    {color: '#F44336', label: 'Alta (89-100%)', icon: '🔴'}
+    {color: '#4CAF50', label: 'Baixa (0-75%)', icon: '🟢', border: '#2e7d32'},
+    {color: '#FF9800', label: 'Média (75-89%)', icon: '🟠', border: '#e65100'},
+    {color: '#F44336', label: 'Alta (89-100%)', icon: '🔴', border: '#b71c1c'}
   ];
 
   ranges.forEach(function(range) {
     var colorBox = ui.Label('', {
       backgroundColor: range.color,
-      padding: '12px',
-      margin: '0 8px 0 0',
-      width: '30px',
-      border: '1px solid #333'
+      padding: '14px',
+      margin: '0 10px 0 0',
+      width: '35px',
+      border: '2px solid ' + range.border,
+      borderRadius: '3px'
     });
 
     var label = ui.Label(range.icon + ' ' + range.label, {
       margin: '0',
-      fontSize: '13px',
-      color: '#333'
+      fontSize: '12px',
+      fontWeight: '600',
+      color: '#2c3e50'
     });
 
     var row = ui.Panel({
       widgets: [colorBox, label],
       layout: ui.Panel.Layout.flow('horizontal'),
-      style: {margin: '5px 0'}
+      style: {margin: '6px 0'}
     });
 
     legend.add(row);
@@ -497,34 +598,102 @@ function createLegend() {
 }
 
 /**
- * Adiciona logos de apoiadores
- * @param {Array} logoUrls - Array de URLs das logos
+ * Cria título para o header do mapa
  */
-function addLogos(logoUrls) {
-  var logoPanel = ui.Panel({
-    layout: ui.Panel.Layout.flow('horizontal'),
+function createMapTitle() {
+  var titlePanel = ui.Panel({
+    layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#f0f0f0',
-      padding: '10px',
-      margin: '10px 0 0 0'
+      position: 'top-center',
+      backgroundColor: 'rgba(26, 37, 47, 0.92)',
+      padding: '12px 30px',
+      margin: '0',
+      border: '2px solid #34495e',
+      borderRadius: '0 0 8px 8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
     }
   });
-  
-  logoPanel.add(ui.Label('Apoiadores:', {fontWeight: 'bold', margin: '0 10px 0 0'}));
-  
-  logoUrls.forEach(function(url) {
-    var logo = ui.Thumbnail({
-      image: ee.Image(1).visualize({palette: ['ffffff']}), // Placeholder
-      params: {dimensions: '80x40'},
-      style: {margin: '0 10px'}
-    });
-    
-    // Nota: No GEE Apps, logos externas precisam ser carregadas como assets
-    // Este é um placeholder para demonstração
-    logoPanel.add(logo);
+
+  var title = ui.Label('🗺️ ANÁLISE DE PROBABILIDADE DE LIXÕES', {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    margin: '0',
+    padding: '0',
+    fontFamily: 'monospace',
+    textAlign: 'center',
+    whiteSpace: 'pre'
   });
-  
-  sidePanel.add(logoPanel);
+
+  var subtitle = ui.Label('Mapeamento Inteligente via Google Earth Engine', {
+    fontSize: '11px',
+    color: '#95a5a6',
+    margin: '2px 0 0 0',
+    textAlign: 'center'
+  });
+
+  titlePanel.add(title);
+  titlePanel.add(subtitle);
+
+  return titlePanel;
+}
+
+/**
+ * Adiciona logos de apoiadores no footer do painel lateral
+ * Otimizado para renderização adequada
+ */
+function createFooterWithLogos() {
+  var footerPanel = ui.Panel({
+    layout: ui.Panel.Layout.flow('vertical'),
+    style: {
+      backgroundColor: '#ffffff',
+      padding: '18px',
+      margin: '15px 0 0 0',
+      border: '1px solid #e0e0e0',
+      borderRadius: '4px'
+    }
+  });
+
+  footerPanel.add(ui.Label('APOIO E PARCEIROS', {
+    fontWeight: 'bold',
+    fontSize: '14px',
+    color: '#2c3e50',
+    margin: '0 0 12px 0',
+    textAlign: 'center',
+    stretch: 'horizontal'
+  }));
+
+  // Texto de apoiadores (pode ser customizado)
+  var apoiadoresText = ui.Label(
+    '🏛️ Instituições de Pesquisa\n' +
+    '🌍 Google Earth Engine\n' +
+    '🔬 Laboratórios Parceiros\n' +
+    '📊 Dados Abertos Brasil',
+    {
+      fontSize: '11px',
+      color: '#555',
+      margin: '0',
+      whiteSpace: 'pre',
+      textAlign: 'center',
+      stretch: 'horizontal'
+    }
+  );
+
+  footerPanel.add(apoiadoresText);
+
+  // Informação de versão/créditos
+  var credits = ui.Label('Desenvolvido com Google Earth Engine • v2.0', {
+    fontSize: '10px',
+    color: '#95a5a6',
+    margin: '12px 0 0 0',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    stretch: 'horizontal'
+  });
+
+  footerPanel.add(credits);
+
+  return footerPanel;
 }
 
 // ===========================
@@ -558,13 +727,15 @@ function updateVisualization() {
   var styledVector = styleVector(filteredVector, metric);
   
   // Adicionar camadas ao mapa
+  // Raster com opacidade otimizada para melhor visualização sobre satélite
   mapPanel.addLayer(rasterData.select('prob_class0'), {
     min: 0,
     max: 1,
     palette: CONFIG.probabilityPalette
-  }, 'Probabilidade Raster', true, 0.7);
-  
-  mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, 'Unidades Administrativas');
+  }, '🌡️ Probabilidade (Raster)', true, 0.65);
+
+  // Vetor com estilo otimizado
+  mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, '📐 Polígonos Detectados');
   
   // Centralizar no filtro se específico
   if (muni !== 'Todos' && muni !== null) {
@@ -607,34 +778,49 @@ function updateVisualization() {
 
         var infoPanel = ui.Panel({
           widgets: [
-            ui.Label('Informações da Área', {
+            ui.Label('📋 INFORMAÇÕES DA ÁREA', {
               fontWeight: 'bold',
-              fontSize: '14px',
+              fontSize: '13px',
+              color: '#1a252f',
+              margin: '0 0 10px 0',
+              backgroundColor: '#ecf0f1',
+              padding: '6px',
+              textAlign: 'center',
+              stretch: 'horizontal'
+            }),
+            ui.Label('🗺️ Estado: ' + props.uf, {
+              fontSize: '12px',
               color: '#2c3e50',
-              margin: '0 0 8px 0'
+              margin: '4px 0',
+              fontWeight: '600'
             }),
-            ui.Label('Estado: ' + props.uf, {
+            ui.Label('📍 Município: ' + props.muni_name, {
               fontSize: '12px',
-              color: '#555',
-              margin: '2px 0'
+              color: '#2c3e50',
+              margin: '4px 0',
+              fontWeight: '600'
             }),
-            ui.Label('Município: ' + props.muni_name, {
-              fontSize: '12px',
-              color: '#555',
-              margin: '2px 0'
-            }),
-            ui.Label(corIcon + ' Probabilidade: ' + probText + ' (' + faixa + ')', {
-              fontSize: '12px',
-              color: '#555',
+            ui.Label(corIcon + ' Probabilidade: ' + probText, {
+              fontSize: '13px',
+              color: prob >= 89 ? '#c62828' : (prob >= 75 ? '#ef6c00' : '#2e7d32'),
               fontWeight: 'bold',
-              margin: '6px 0 0 0'
+              margin: '8px 0 4px 0'
+            }),
+            ui.Label('Classificação: ' + faixa.toUpperCase(), {
+              fontSize: '11px',
+              color: '#7f8c8d',
+              fontStyle: 'italic',
+              margin: '0'
             })
           ],
           style: {
             position: 'bottom-left',
-            backgroundColor: 'white',
-            padding: '15px',
-            border: '2px solid #2c3e50'
+            backgroundColor: 'rgba(255, 255, 255, 0.97)',
+            padding: '16px 18px',
+            border: '3px solid #2c3e50',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            maxWidth: '280px'
           }
         });
 
@@ -646,21 +832,24 @@ function updateVisualization() {
 
 /**
  * Atualiza painel de métricas
+ * Calcula e exibe estatísticas sobre os polígonos filtrados
  */
 function updateMetrics(features, probColumn) {
   var count = features.size();
   var avgProb = features.aggregate_mean(probColumn);
-  
-  // Atualizar labels básicos
-  metrics.totalLabel.setValue('Total de ocorrências: ' + count.getInfo());
-  metrics.avgProbLabel.setValue('Probabilidade média: ' + 
-    (avgProb.getInfo() * 100).toFixed(1).replace('.', ',') + '%');
-  
-  // Calcular por faixa
+
+  // Atualizar labels básicos com formatação aprimorada
+  var totalOcorrencias = count.getInfo();
+  metrics.totalLabel.setValue('🎯 Total de ocorrências: ' + totalOcorrencias);
+
+  var avgProbValue = (avgProb.getInfo() * 100).toFixed(1).replace('.', ',');
+  metrics.avgProbLabel.setValue('📈 Probabilidade média: ' + avgProbValue + '%');
+
+  // Calcular e exibir distribuição por faixa de probabilidade
   var rangeStats = calculateStatsByRange(features, probColumn);
-  metrics.lowLabel.setValue('🟢 Baixa (0-75%): ' + rangeStats.baixa);
-  metrics.medLabel.setValue('🟠 Média (75-89%): ' + rangeStats.media);
-  metrics.highLabel.setValue('🔴 Alta (89-100%): ' + rangeStats.alta);
+  metrics.lowLabel.setValue('🟢 Baixa (0-75%): ' + rangeStats.baixa + ' áreas');
+  metrics.medLabel.setValue('🟠 Média (75-89%): ' + rangeStats.media + ' áreas');
+  metrics.highLabel.setValue('🔴 Alta (89-100%): ' + rangeStats.alta + ' áreas');
 }
 
 // ===========================
@@ -683,29 +872,32 @@ if (probColumns.length === 0) {
   
   // Construir interface
   sidePanel.add(createHeader());
-  
+
   var filterSection = createFilterSection(vectorData, probColumns);
   var filters = filterSection;
   sidePanel.add(filterSection.panel);
-  
+
   var metricsSection = createMetricsPanel();
   var metrics = metricsSection;
   sidePanel.add(metricsSection.panel);
-  
+
+  // Adicionar footer com logos dos apoiadores
+  sidePanel.add(createFooterWithLogos());
+
+  // Adicionar título ao header do mapa
+  mapPanel.add(createMapTitle());
+
   // Adicionar legenda ao mapa
   mapPanel.add(createLegend());
-  
+
   // Montar layout principal
   mainPanel.add(sidePanel);
   mainPanel.add(mapPanel);
-  
+
   // Limpar root e adicionar painel principal
   ui.root.clear();
   ui.root.add(mainPanel);
-  
+
   // Carregar visualização inicial
   updateVisualization();
-  
-  // Exemplo de como adicionar logos (substitua com URLs reais dos assets)
-  // addLogos(['users/seu_usuario/logo1', 'users/seu_usuario/logo2']);
 }
