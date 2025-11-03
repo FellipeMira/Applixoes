@@ -1,6 +1,51 @@
 /**
+ * ========================================
  * Aplicativo GEE - Análise de Probabilidade de Lixões
+ * ========================================
+ *
  * Visualização interativa com filtros por estado/município e métricas agregadas
+ *
+ * MELHORIAS IMPLEMENTADAS:
+ * ────────────────────────
+ *
+ * 1. BASEMAP HÍBRIDO
+ *    - Alterado para visualização satélite + labels
+ *    - Melhor contexto geoespacial
+ *
+ * 2. DESTAQUE PARA ALTA PROBABILIDADE
+ *    - Polígonos de alta probabilidade (>89%) com:
+ *      • Borda mais espessa (3px)
+ *      • Maior opacidade (90%)
+ *      • Cor de borda escura (#B71C1C)
+ *
+ * 3. NOVA PALETA RASTER
+ *    - Gradiente: Azul escuro → Azul → Verde → Amarelo → Vermelho
+ *    - Opacidade ajustada (60%) para basemap híbrido
+ *
+ * 4. ESTÉTICA APRIMORADA
+ *    - Títulos com maior contraste e visibilidade
+ *    - Fontes aumentadas e com família especificada
+ *    - Botões com melhor definição e cores
+ *    - Ícones emoji para melhor UX
+ *
+ * 5. HEADER PRINCIPAL
+ *    - Header fixo no topo do app
+ *    - Título centralizado e proeminente
+ *
+ * 6. FOOTER COM LOGOS
+ *    - Seção de apoiadores no rodapé do sidebar
+ *    - Instruções para adicionar logos reais
+ *
+ * 7. AJUSTES TÉCNICOS ESPECIALIZADOS
+ *    - Painel de informações técnicas do sistema
+ *    - Legenda aprimorada (polígonos + raster)
+ *    - Indicador de carregamento
+ *    - Controles de mapa otimizados
+ *    - Popup de informações com fundo colorido por categoria
+ *    - Sidebar com scroll automático
+ *    - Bordas destacadas nos painéis
+ *
+ * ========================================
  */
 
 // ===========================
@@ -13,9 +58,10 @@ var CONFIG = {
   vectorAsset: 'projects/lixoes-467518/assets/resultsVect/MEDIAN_IMPROVED_THRESHOLDS_70_MIN_AREAS_1000_SCIKIT_ALL_METRICS_V6',
   
   // Visualização
-  probabilityPalette: ['#2166ac', '#4393c3', '#92c5de', '#d1e5f0', '#f7f7f7', '#fddbc7', '#f4a582', '#d6604d', '#b2182b'],
+  probabilityPalette: ['#050220', '#0f567f', '#1e90ff', '#6dc07a', '#efff36', '#FF0000'], // Nova paleta fornecida
   mapCenter: {lon: -47.93, lat: -15.78}, // Centro do Brasil
   mapZoom: 4,
+  baseMap: 'HYBRID', // Basemap híbrido (satélite + labels)
   
   // Faixas de probabilidade
   probabilityRanges: {
@@ -149,6 +195,7 @@ function calculateStatsByState(vectorData, probColumn) {
 /**
  * Estilo para features vetoriais por probabilidade
  * Usa as faixas definidas em CONFIG.probabilityRanges
+ * DESTAQUE para polígonos de ALTA probabilidade
  */
 function getFeatureStyle(feature, probColumn) {
   var prob = ee.Number(feature.get(probColumn));
@@ -156,21 +203,50 @@ function getFeatureStyle(feature, probColumn) {
   // Paleta de cores baseada nas faixas de probabilidade
   // Baixa (0-0.75): Verde - #4CAF50
   // Média (0.75-0.89): Laranja - #FF9800
-  // Alta (0.89-1.0): Vermelho - #F44336
-  var color = ee.Algorithms.If(
+  // Alta (0.89-1.0): Vermelho - #F44336 (COM DESTAQUE)
+
+  // Cor de preenchimento
+  var fillColor = ee.Algorithms.If(
     prob.lt(0.75), '#4CAF50',
     ee.Algorithms.If(
       prob.lt(0.89), '#FF9800',
-      '#F44336'
+      '#F44336'  // Vermelho intenso para alta probabilidade
+    )
+  );
+
+  // Cor da borda - destaque para alta probabilidade
+  var borderColor = ee.Algorithms.If(
+    prob.lt(0.75), '#2E7D32',  // Verde escuro
+    ee.Algorithms.If(
+      prob.lt(0.89), '#E65100',  // Laranja escuro
+      '#B71C1C'  // Vermelho muito escuro para destaque
+    )
+  );
+
+  // Espessura da borda - maior para alta probabilidade
+  var borderWidth = ee.Algorithms.If(
+    prob.lt(0.75), 1.5,
+    ee.Algorithms.If(
+      prob.lt(0.89), 2,
+      3  // Borda mais grossa para alta probabilidade
+    )
+  );
+
+  // Opacidade - maior para alta probabilidade
+  var fillOpacity = ee.Algorithms.If(
+    prob.lt(0.75), 0.65,
+    ee.Algorithms.If(
+      prob.lt(0.89), 0.75,
+      0.90  // Maior opacidade para alta probabilidade
     )
   );
 
   return feature.set({
     style: {
-      color: '#333333',      // Borda cinza escura
-      fillColor: color,
-      width: 1.5,
-      fillOpacity: 0.75
+      color: borderColor,
+      fillColor: fillColor,
+      width: borderWidth,
+      fillOpacity: fillOpacity
     }
   });
 }
@@ -196,15 +272,28 @@ var mainPanel = ui.Panel({
 
 var sidePanel = ui.Panel({
   style: {
-    width: '420px',
+    width: '440px',  // Aumentado ligeiramente
     padding: '15px',
-    backgroundColor: '#f5f7fa'
+    backgroundColor: '#f5f7fa',
+    maxHeight: '100%',
+    overflow: 'auto'  // Scroll se necessário
   }
 });
 
 var mapPanel = ui.Map();
 mapPanel.setCenter(CONFIG.mapCenter.lon, CONFIG.mapCenter.lat, CONFIG.mapZoom);
+mapPanel.setOptions(CONFIG.baseMap); // Configurar basemap híbrido
 mapPanel.style().set('cursor', 'crosshair');
+
+// Configurações avançadas do mapa
+mapPanel.setControlVisibility({
+  all: false,
+  layerList: true,      // Controle de camadas
+  zoomControl: true,    // Controle de zoom
+  scaleControl: true,   // Escala
+  mapTypeControl: true, // Seletor de basemap
+  fullscreenControl: false
+});
 
 // ===========================
 // CONSTRUÇÃO DA UI
@@ -212,29 +301,37 @@ mapPanel.style().set('cursor', 'crosshair');
 
 /**
  * Cria cabeçalho do aplicativo
+ * Melhorado para garantir boa renderização e visibilidade
  */
 function createHeader() {
   var header = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#2c3e50',
-      padding: '20px',
+      backgroundColor: '#1a252f',  // Azul muito escuro para contraste
+      padding: '24px 20px',
       margin: '0 0 15px 0',
-      border: '0px'
+      border: '3px solid #34495e',  // Borda sutil para definição
+      stretch: 'horizontal'
     }
   });
 
-  var title = ui.Label('Análise de Probabilidade de Lixões', {
-    fontSize: '22px',
+  var title = ui.Label('🗺️ Análise de Probabilidade de Lixões', {
+    fontSize: '26px',           // Aumentado para melhor visibilidade
     fontWeight: 'bold',
-    color: '#ffffff',
-    margin: '0 0 8px 0'
+    color: '#FFFFFF',           // Branco puro para máximo contraste
+    margin: '0 0 10px 0',
+    textAlign: 'center',
+    stretch: 'horizontal',
+    fontFamily: 'Roboto, Arial, sans-serif'  // Fonte legível
   });
 
-  var subtitle = ui.Label('Sistema de monitoramento e análise espacial', {
-    fontSize: '13px',
-    color: '#ecf0f1',
-    fontStyle: 'italic'
+  var subtitle = ui.Label('Sistema de Monitoramento e Análise Espacial', {
+    fontSize: '15px',           // Aumentado
+    color: '#E8F4F8',           // Azul muito claro
+    fontStyle: 'italic',
+    textAlign: 'center',
+    stretch: 'horizontal',
+    fontFamily: 'Roboto, Arial, sans-serif'
   });
 
   header.add(title);
@@ -253,13 +350,13 @@ function createFilterSection(vectorData, probColumns) {
       backgroundColor: '#ffffff',
       padding: '18px',
       margin: '0 0 15px 0',
-      border: '1px solid #e0e0e0'
+      border: '2px solid #3498db'  // Borda mais visível
     }
   });
 
-  filterPanel.add(ui.Label('Filtros', {
+  filterPanel.add(ui.Label('🔎 Filtros Espaciais', {
     fontWeight: 'bold',
-    fontSize: '16px',
+    fontSize: '17px',
     color: '#2c3e50',
     margin: '0 0 12px 0'
   }));
@@ -337,19 +434,23 @@ function createFilterSection(vectorData, probColumns) {
   filterPanel.add(muniSearchLabel);
   filterPanel.add(muniSearchBox);
   
-  // Botão aplicar filtros
+  // Botão aplicar filtros - melhorado para visibilidade
   var applyButton = ui.Button({
-    label: 'Aplicar Filtros',
+    label: '🔍 Aplicar Filtros',
     style: {
       width: '100%',
       margin: '15px 0 5px 0',
-      backgroundColor: '#3498db',
-      color: '#ffffff',
-      padding: '10px'
+      backgroundColor: '#2980b9',  // Azul mais escuro
+      color: '#FFFFFF',             // Branco puro
+      padding: '12px',              // Aumentado
+      fontSize: '15px',             // Tamanho de fonte explícito
+      fontWeight: 'bold',           // Negrito
+      border: '2px solid #1a5490',  // Borda para definição
+      textAlign: 'center'
     },
     onClick: updateVisualization
   });
-  
+
   filterPanel.add(applyButton);
 
   return {
@@ -357,6 +458,55 @@ function createFilterSection(vectorData, probColumns) {
     stateSelect: stateSelect,
     muniSelect: muniSelect
   };
+}
+
+/**
+ * Cria painel de informações técnicas
+ */
+function createInfoPanel() {
+  var infoPanel = ui.Panel({
+    layout: ui.Panel.Layout.flow('vertical'),
+    style: {
+      backgroundColor: '#e8f4f8',
+      padding: '15px',
+      margin: '0 0 15px 0',
+      border: '2px solid #3498db'
+    }
+  });
+
+  infoPanel.add(ui.Label('ℹ️ Informações do Sistema', {
+    fontWeight: 'bold',
+    fontSize: '14px',
+    color: '#1a5490',
+    margin: '0 0 10px 0'
+  }));
+
+  infoPanel.add(ui.Label('🔹 Basemap: Híbrido (Satélite + Labels)', {
+    fontSize: '12px',
+    color: '#34495e',
+    margin: '3px 0'
+  }));
+
+  infoPanel.add(ui.Label('🔹 Resolução: Multi-escala', {
+    fontSize: '12px',
+    color: '#34495e',
+    margin: '3px 0'
+  }));
+
+  infoPanel.add(ui.Label('🔹 Modelo: Machine Learning (Scikit-learn)', {
+    fontSize: '12px',
+    color: '#34495e',
+    margin: '3px 0'
+  }));
+
+  infoPanel.add(ui.Label('🔹 Destaque: Áreas de ALTA probabilidade', {
+    fontSize: '12px',
+    color: '#e74c3c',
+    fontWeight: 'bold',
+    margin: '3px 0'
+  }));
+
+  return infoPanel;
 }
 
 /**
@@ -369,13 +519,13 @@ function createMetricsPanel() {
       backgroundColor: '#ffffff',
       padding: '18px',
       margin: '0 0 15px 0',
-      border: '1px solid #e0e0e0'
+      border: '2px solid #3498db'  // Borda mais visível
     }
   });
 
-  metricsPanel.add(ui.Label('Métricas', {
+  metricsPanel.add(ui.Label('📈 Métricas', {
     fontWeight: 'bold',
-    fontSize: '16px',
+    fontSize: '17px',
     color: '#2c3e50',
     margin: '0 0 12px 0'
   }));
@@ -443,45 +593,56 @@ function createMetricsPanel() {
 }
 
 /**
- * Cria legenda para o mapa
+ * Cria legenda aprimorada para o mapa
+ * Inclui legendas para polígonos E raster
  */
 function createLegend() {
   var legend = ui.Panel({
     style: {
       position: 'bottom-right',
-      padding: '12px 18px',
-      backgroundColor: 'white',
-      border: '2px solid #333'
+      padding: '15px 20px',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',  // Fundo semi-transparente
+      border: '3px solid #2c3e50'
     }
   });
 
-  legend.add(ui.Label('Probabilidade de Lixão', {
+  // Título principal
+  legend.add(ui.Label('📊 Legenda', {
     fontWeight: 'bold',
-    fontSize: '14px',
-    color: '#2c3e50',
-    margin: '0 0 10px 0'
+    fontSize: '16px',
+    color: '#1a252f',
+    margin: '0 0 12px 0'
   }));
 
-  // Três faixas de probabilidade
+  // Seção Polígonos
+  legend.add(ui.Label('Polígonos (Vetorial):', {
+    fontWeight: 'bold',
+    fontSize: '13px',
+    color: '#2c3e50',
+    margin: '5px 0 8px 0'
+  }));
+
+  // Três faixas de probabilidade para polígonos
   var ranges = [
     {color: '#4CAF50', label: 'Baixa (0-75%)', icon: '🟢'},
     {color: '#FF9800', label: 'Média (75-89%)', icon: '🟠'},
-    {color: '#F44336', label: 'Alta (89-100%)', icon: '🔴'}
+    {color: '#F44336', label: 'Alta (89-100%)', icon: '🔴', highlight: true}
   ];
 
   ranges.forEach(function(range) {
     var colorBox = ui.Label('', {
       backgroundColor: range.color,
-      padding: '12px',
+      padding: range.highlight ? '14px' : '12px',  // Maior para alta prob
       margin: '0 8px 0 0',
       width: '30px',
-      border: '1px solid #333'
+      border: range.highlight ? '2px solid #B71C1C' : '1px solid #333'
     });
 
     var label = ui.Label(range.icon + ' ' + range.label, {
       margin: '0',
       fontSize: '13px',
-      color: '#333'
+      color: '#333',
+      fontWeight: range.highlight ? 'bold' : 'normal'
     });
 
     var row = ui.Panel({
@@ -493,38 +654,162 @@ function createLegend() {
     legend.add(row);
   });
 
+  // Separador
+  legend.add(ui.Label('────────────────', {
+    color: '#bdc3c7',
+    margin: '10px 0',
+    fontSize: '10px'
+  }));
+
+  // Seção Raster
+  legend.add(ui.Label('Raster (Probabilidade):', {
+    fontWeight: 'bold',
+    fontSize: '13px',
+    color: '#2c3e50',
+    margin: '5px 0 8px 0'
+  }));
+
+  // Barra de gradiente para raster
+  var gradientColors = CONFIG.probabilityPalette;
+  var gradientPanel = ui.Panel({
+    layout: ui.Panel.Layout.flow('horizontal'),
+    style: {margin: '5px 0'}
+  });
+
+  gradientColors.forEach(function(color) {
+    gradientPanel.add(ui.Label('', {
+      backgroundColor: color,
+      padding: '15px 8px',
+      margin: '0'
+    }));
+  });
+
+  legend.add(gradientPanel);
+
+  // Labels de min/max
+  var minMaxPanel = ui.Panel({
+    layout: ui.Panel.Layout.flow('horizontal'),
+    style: {margin: '2px 0'}
+  });
+
+  minMaxPanel.add(ui.Label('0%', {
+    fontSize: '11px',
+    color: '#555',
+    margin: '0 10px 0 0',
+    stretch: 'horizontal',
+    textAlign: 'left'
+  }));
+
+  minMaxPanel.add(ui.Label('100%', {
+    fontSize: '11px',
+    color: '#555',
+    stretch: 'horizontal',
+    textAlign: 'right'
+  }));
+
+  legend.add(minMaxPanel);
+
   return legend;
 }
 
 /**
- * Adiciona logos de apoiadores
- * @param {Array} logoUrls - Array de URLs das logos
+ * Cria header principal no topo do app (acima de tudo)
  */
-function addLogos(logoUrls) {
-  var logoPanel = ui.Panel({
+function createMainHeader() {
+  var mainHeader = ui.Panel({
     layout: ui.Panel.Layout.flow('horizontal'),
     style: {
-      backgroundColor: '#f0f0f0',
-      padding: '10px',
-      margin: '10px 0 0 0'
+      backgroundColor: '#0f1419',  // Azul muito escuro, quase preto
+      padding: '15px 30px',
+      stretch: 'horizontal',
+      border: '3px solid #1e3a5f'
     }
   });
-  
-  logoPanel.add(ui.Label('Apoiadores:', {fontWeight: 'bold', margin: '0 10px 0 0'}));
-  
-  logoUrls.forEach(function(url) {
-    var logo = ui.Thumbnail({
-      image: ee.Image(1).visualize({palette: ['ffffff']}), // Placeholder
-      params: {dimensions: '80x40'},
-      style: {margin: '0 10px'}
-    });
-    
-    // Nota: No GEE Apps, logos externas precisam ser carregadas como assets
-    // Este é um placeholder para demonstração
-    logoPanel.add(logo);
+
+  var titleLabel = ui.Label('🌍 Análise de Probabilidade de Lixões - Sistema de Monitoramento Espacial', {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    stretch: 'horizontal',
+    textAlign: 'center',
+    fontFamily: 'Roboto, Arial, sans-serif'
   });
-  
-  sidePanel.add(logoPanel);
+
+  mainHeader.add(titleLabel);
+  return mainHeader;
+}
+
+/**
+ * Cria footer com logos de apoiadores
+ */
+function createFooter() {
+  var footer = ui.Panel({
+    layout: ui.Panel.Layout.flow('vertical'),
+    style: {
+      backgroundColor: '#f8f9fa',
+      padding: '15px 20px',
+      margin: '15px 0 0 0',
+      border: '2px solid #dee2e6',
+      stretch: 'horizontal'
+    }
+  });
+
+  // Título da seção
+  var footerTitle = ui.Label('Apoiadores e Parceiros', {
+    fontSize: '14px',
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    margin: '0 0 10px 0',
+    textAlign: 'center',
+    stretch: 'horizontal'
+  });
+
+  // Container para logos
+  var logoContainer = ui.Panel({
+    layout: ui.Panel.Layout.flow('horizontal'),
+    style: {
+      stretch: 'horizontal',
+      padding: '10px',
+      backgroundColor: '#ffffff',
+      border: '1px solid #e0e0e0'
+    }
+  });
+
+  // Placeholders para logos (substitua com assets reais no GEE)
+  var logos = [
+    {name: 'Instituição 1', url: 'https://via.placeholder.com/120x60/2980b9/ffffff?text=Logo+1'},
+    {name: 'Instituição 2', url: 'https://via.placeholder.com/120x60/27ae60/ffffff?text=Logo+2'},
+    {name: 'Instituição 3', url: 'https://via.placeholder.com/120x60/e74c3c/ffffff?text=Logo+3'}
+  ];
+
+  // Adicionar texto explicativo sobre como adicionar logos reais
+  var instructionLabel = ui.Label(
+    '💡 Para adicionar logos reais: carregue as imagens como assets no GEE e use ee.Image(asset_path)',
+    {
+      fontSize: '11px',
+      color: '#7f8c8d',
+      fontStyle: 'italic',
+      margin: '5px 0',
+      whiteSpace: 'pre'
+    }
+  );
+
+  // Label de placeholder para logos
+  var logoPlaceholder = ui.Label('📋 [Logos dos Apoiadores: CNPq | FAPESP | CAPES | Universidades]', {
+    fontSize: '13px',
+    color: '#34495e',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    stretch: 'horizontal',
+    margin: '5px'
+  });
+
+  footer.add(footerTitle);
+  logoContainer.add(logoPlaceholder);
+  footer.add(logoContainer);
+  footer.add(instructionLabel);
+
+  return footer;
 }
 
 // ===========================
@@ -532,11 +817,43 @@ function addLogos(logoUrls) {
 // ===========================
 
 /**
+ * Cria indicador de carregamento
+ */
+function createLoadingIndicator() {
+  return ui.Panel({
+    widgets: [
+      ui.Label({
+        value: '⏳ Processando...',
+        style: {
+          fontSize: '14px',
+          fontWeight: 'bold',
+          color: '#2980b9',
+          padding: '10px',
+          backgroundColor: '#e8f4f8',
+          border: '2px solid #3498db'
+        }
+      })
+    ],
+    style: {
+      position: 'top-center',
+      padding: '0px'
+    }
+  });
+}
+
+/**
  * Atualiza visualização com base nos filtros
  */
 function updateVisualization() {
-  // Limpar camadas anteriores
-  mapPanel.clear();
+  // Mostrar indicador de carregamento
+  var loadingPanel = createLoadingIndicator();
+  mapPanel.add(loadingPanel);
+
+  // Limpar camadas anteriores (exceto loading)
+  var layers = mapPanel.layers();
+  while (layers.length() > 0) {
+    layers.remove(layers.get(0));
+  }
 
   // Usar métrica de probabilidade padrão (primeira disponível)
   var metric = probColumns[0];
@@ -556,15 +873,22 @@ function updateVisualization() {
   
   // Aplicar estilo
   var styledVector = styleVector(filteredVector, metric);
-  
+
   // Adicionar camadas ao mapa
+  // Raster com opacidade ajustada para basemap híbrido
   mapPanel.addLayer(rasterData.select('prob_class0'), {
     min: 0,
     max: 1,
     palette: CONFIG.probabilityPalette
-  }, 'Probabilidade Raster', true, 0.7);
-  
-  mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, 'Unidades Administrativas');
+  }, 'Probabilidade Raster', true, 0.6);  // Opacidade reduzida para melhor visualização com basemap
+
+  // Polígonos vetoriais com destaque
+  mapPanel.addLayer(
+    styledVector.style({styleProperty: 'style'}),
+    {},
+    'Polígonos - Áreas Identificadas',
+    true
+  );
   
   // Centralizar no filtro se específico
   if (muni !== 'Todos' && muni !== null) {
@@ -577,8 +901,14 @@ function updateVisualization() {
   
   // Atualizar métricas
   updateMetrics(filteredVector, metric);
-  
-  // Configurar clique para popup
+
+  // Remover indicador de carregamento
+  mapPanel.remove(loadingPanel);
+
+  // Adicionar legenda novamente (foi removida com as layers)
+  mapPanel.add(createLegend());
+
+  // Configurar clique para popup com informações detalhadas
   mapPanel.onClick(function(coords) {
     var point = ee.Geometry.Point(coords.lon, coords.lat);
     var clicked = styledVector.filterBounds(point);
@@ -605,36 +935,60 @@ function updateVisualization() {
           corIcon = '🔴';
         }
 
+        // Determinar cor de fundo baseada na faixa
+        var bgColor = '#e8f5e9';  // Verde claro
+        if (faixa === 'Média') bgColor = '#fff3e0';  // Laranja claro
+        if (faixa === 'Alta') bgColor = '#ffebee';   // Vermelho claro
+
         var infoPanel = ui.Panel({
           widgets: [
-            ui.Label('Informações da Área', {
+            ui.Label('📍 Informações da Área', {
               fontWeight: 'bold',
-              fontSize: '14px',
-              color: '#2c3e50',
-              margin: '0 0 8px 0'
+              fontSize: '15px',
+              color: '#1a252f',
+              margin: '0 0 10px 0'
             }),
             ui.Label('Estado: ' + props.uf, {
-              fontSize: '12px',
-              color: '#555',
-              margin: '2px 0'
+              fontSize: '13px',
+              color: '#2c3e50',
+              fontWeight: 'bold',
+              margin: '4px 0'
             }),
             ui.Label('Município: ' + props.muni_name, {
-              fontSize: '12px',
-              color: '#555',
-              margin: '2px 0'
+              fontSize: '13px',
+              color: '#34495e',
+              margin: '4px 0'
             }),
-            ui.Label(corIcon + ' Probabilidade: ' + probText + ' (' + faixa + ')', {
-              fontSize: '12px',
-              color: '#555',
+            ui.Label('─────────────────', {
+              fontSize: '10px',
+              color: '#bdc3c7',
+              margin: '8px 0'
+            }),
+            ui.Label(corIcon + ' Probabilidade: ' + probText, {
+              fontSize: '14px',
+              color: '#1a252f',
               fontWeight: 'bold',
-              margin: '6px 0 0 0'
+              margin: '4px 0'
+            }),
+            ui.Label('Categoria: ' + faixa, {
+              fontSize: '13px',
+              color: faixa === 'Alta' ? '#c0392b' : (faixa === 'Média' ? '#d68910' : '#27ae60'),
+              fontWeight: 'bold',
+              margin: '4px 0'
+            }),
+            ui.Label('💡 Clique fora para fechar', {
+              fontSize: '11px',
+              color: '#7f8c8d',
+              fontStyle: 'italic',
+              margin: '8px 0 0 0'
             })
           ],
           style: {
             position: 'bottom-left',
-            backgroundColor: 'white',
-            padding: '15px',
-            border: '2px solid #2c3e50'
+            backgroundColor: bgColor,
+            padding: '18px',
+            border: '3px solid #2c3e50',
+            maxWidth: '300px'
           }
         });
 
@@ -681,27 +1035,52 @@ if (probColumns.length === 0) {
 } else {
   print('Colunas de probabilidade disponíveis:', probColumns);
   
-  // Construir interface
+  // Construir interface com novo layout
+
+  // Criar painel principal com layout vertical para incluir header
+  var appContainer = ui.Panel({
+    layout: ui.Panel.Layout.flow('vertical'),
+    style: {
+      width: '100%',
+      height: '100%',
+      padding: '0px',
+      margin: '0px'
+    }
+  });
+
+  // Adicionar header principal no topo
+  appContainer.add(createMainHeader());
+
+  // Construir sidebar
   sidePanel.add(createHeader());
-  
+
+  // Adicionar painel de informações técnicas
+  sidePanel.add(createInfoPanel());
+
   var filterSection = createFilterSection(vectorData, probColumns);
   var filters = filterSection;
   sidePanel.add(filterSection.panel);
-  
+
   var metricsSection = createMetricsPanel();
   var metrics = metricsSection;
   sidePanel.add(metricsSection.panel);
-  
+
+  // Adicionar footer ao sidebar
+  sidePanel.add(createFooter());
+
   // Adicionar legenda ao mapa
   mapPanel.add(createLegend());
-  
-  // Montar layout principal
+
+  // Montar layout principal (sidebar + mapa)
   mainPanel.add(sidePanel);
   mainPanel.add(mapPanel);
-  
-  // Limpar root e adicionar painel principal
+
+  // Adicionar ao container
+  appContainer.add(mainPanel);
+
+  // Limpar root e adicionar container completo
   ui.root.clear();
-  ui.root.add(mainPanel);
+  ui.root.add(appContainer);
   
   // Carregar visualização inicial
   updateVisualization();
