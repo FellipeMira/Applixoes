@@ -715,23 +715,30 @@ function createMapTitle() {
     }
   });
 
-  var title = ui.Label('ANÁLISE DE PROBABILIDADE DE LIXÕES', {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    margin: '0',
-    padding: '0',
-    fontFamily: 'monospace',
-    textAlign: 'center',
-    whiteSpace: 'pre'
-  });
+var title = ui.Label('ANÁLISE DE LIXÕES', {
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: '#bdc3c7',
+  fontFamily: 'monospace',
+  textAlign: 'center',
+  whiteSpace: 'pre',
+  margin: '0',
+  padding: '0px',
+  border: '0',
+  backgroundColor: 'rgba(0,0,0,0)', // <- transparência
+  stretch: 'horizontal'              // ajuda o alinhamento central
+});
 
-  var subtitle = ui.Label('Mapeamento Inteligente via Google Earth Engine', {
-    fontSize: '11px',
-    color: '#95a5a6',
-    margin: '2px 0 0 0',
-    textAlign: 'center'
-  });
+var subtitle = ui.Label('Mapeamento', {
+  fontSize: '11px',
+  color: '#bdc3c7',
+  backgroundColor: 'rgba(0,0,0,0)',   // transparente
+  border: '0',                         // sem borda
+  padding: '0px',
+  margin: '2px 0 0 0',
+  textAlign: 'center',
+  stretch: 'horizontal'                // para o textAlign funcionar melhor
+});
 
   titlePanel.add(title);
   titlePanel.add(subtitle);
