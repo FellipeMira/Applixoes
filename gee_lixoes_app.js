@@ -240,8 +240,7 @@ var sidePanel = ui.Panel({
   style: {
     width: '430px',
     padding: '16px',
-    backgroundColor: '#ecf0f1',
-    boxShadow: '2px 0 8px rgba(0,0,0,0.1)'
+    backgroundColor: '#ecf0f1'
   }
 });
 
@@ -265,8 +264,7 @@ function createHeader() {
       backgroundColor: '#1a252f',
       padding: '24px 20px',
       margin: '0 0 15px 0',
-      border: '0px solid #34495e',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+      border: '0px solid #34495e'
     }
   });
 
@@ -547,8 +545,7 @@ function createLegend() {
       padding: '16px 20px',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       border: '3px solid #2c3e50',
-      borderRadius: '6px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+      borderRadius: '6px'
     }
   });
 
@@ -609,8 +606,7 @@ function createMapTitle() {
       padding: '12px 30px',
       margin: '0',
       border: '2px solid #34495e',
-      borderRadius: '0 0 8px 8px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+      borderRadius: '0 0 8px 8px'
     }
   });
 
@@ -819,7 +815,6 @@ function updateVisualization() {
             padding: '16px 18px',
             border: '3px solid #2c3e50',
             borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             maxWidth: '280px'
           }
         });
