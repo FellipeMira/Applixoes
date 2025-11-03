@@ -274,9 +274,7 @@ var sidePanel = ui.Panel({
   style: {
     width: '440px',  // Aumentado ligeiramente
     padding: '15px',
-    backgroundColor: '#f5f7fa',
-    maxHeight: '100%',
-    overflow: 'auto'  // Scroll se necessário
+    backgroundColor: '#f5f7fa'
   }
 });
 
@@ -310,8 +308,7 @@ function createHeader() {
       backgroundColor: '#1a252f',  // Azul muito escuro para contraste
       padding: '24px 20px',
       margin: '0 0 15px 0',
-      border: '3px solid #34495e',  // Borda sutil para definição
-      stretch: 'horizontal'
+      border: '3px solid #34495e'  // Borda sutil para definição
     }
   });
 
@@ -319,19 +316,13 @@ function createHeader() {
     fontSize: '26px',           // Aumentado para melhor visibilidade
     fontWeight: 'bold',
     color: '#FFFFFF',           // Branco puro para máximo contraste
-    margin: '0 0 10px 0',
-    textAlign: 'center',
-    stretch: 'horizontal',
-    fontFamily: 'Roboto, Arial, sans-serif'  // Fonte legível
+    margin: '0 0 10px 0'
   });
 
   var subtitle = ui.Label('Sistema de Monitoramento e Análise Espacial', {
     fontSize: '15px',           // Aumentado
     color: '#E8F4F8',           // Azul muito claro
-    fontStyle: 'italic',
-    textAlign: 'center',
-    stretch: 'horizontal',
-    fontFamily: 'Roboto, Arial, sans-serif'
+    fontStyle: 'italic'
   });
 
   header.add(title);
@@ -445,8 +436,7 @@ function createFilterSection(vectorData, probColumns) {
       padding: '12px',              // Aumentado
       fontSize: '15px',             // Tamanho de fonte explícito
       fontWeight: 'bold',           // Negrito
-      border: '2px solid #1a5490',  // Borda para definição
-      textAlign: 'center'
+      border: '2px solid #1a5490'   // Borda para definição
     },
     onClick: updateVisualization
   });
@@ -601,7 +591,7 @@ function createLegend() {
     style: {
       position: 'bottom-right',
       padding: '15px 20px',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',  // Fundo semi-transparente
+      backgroundColor: 'white',
       border: '3px solid #2c3e50'
     }
   });
@@ -695,16 +685,12 @@ function createLegend() {
   minMaxPanel.add(ui.Label('0%', {
     fontSize: '11px',
     color: '#555',
-    margin: '0 10px 0 0',
-    stretch: 'horizontal',
-    textAlign: 'left'
+    margin: '0 10px 0 0'
   }));
 
   minMaxPanel.add(ui.Label('100%', {
     fontSize: '11px',
-    color: '#555',
-    stretch: 'horizontal',
-    textAlign: 'right'
+    color: '#555'
   }));
 
   legend.add(minMaxPanel);
@@ -721,7 +707,6 @@ function createMainHeader() {
     style: {
       backgroundColor: '#0f1419',  // Azul muito escuro, quase preto
       padding: '15px 30px',
-      stretch: 'horizontal',
       border: '3px solid #1e3a5f'
     }
   });
@@ -729,10 +714,7 @@ function createMainHeader() {
   var titleLabel = ui.Label('🌍 Análise de Probabilidade de Lixões - Sistema de Monitoramento Espacial', {
     fontSize: '20px',
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    stretch: 'horizontal',
-    textAlign: 'center',
-    fontFamily: 'Roboto, Arial, sans-serif'
+    color: '#FFFFFF'
   });
 
   mainHeader.add(titleLabel);
@@ -749,8 +731,7 @@ function createFooter() {
       backgroundColor: '#f8f9fa',
       padding: '15px 20px',
       margin: '15px 0 0 0',
-      border: '2px solid #dee2e6',
-      stretch: 'horizontal'
+      border: '2px solid #dee2e6'
     }
   });
 
@@ -759,16 +740,13 @@ function createFooter() {
     fontSize: '14px',
     fontWeight: 'bold',
     color: '#2c3e50',
-    margin: '0 0 10px 0',
-    textAlign: 'center',
-    stretch: 'horizontal'
+    margin: '0 0 10px 0'
   });
 
   // Container para logos
   var logoContainer = ui.Panel({
     layout: ui.Panel.Layout.flow('horizontal'),
     style: {
-      stretch: 'horizontal',
       padding: '10px',
       backgroundColor: '#ffffff',
       border: '1px solid #e0e0e0'
@@ -784,13 +762,12 @@ function createFooter() {
 
   // Adicionar texto explicativo sobre como adicionar logos reais
   var instructionLabel = ui.Label(
-    '💡 Para adicionar logos reais: carregue as imagens como assets no GEE e use ee.Image(asset_path)',
+    '💡 Para adicionar logos reais: carregue as imagens como assets no GEE',
     {
       fontSize: '11px',
       color: '#7f8c8d',
       fontStyle: 'italic',
-      margin: '5px 0',
-      whiteSpace: 'pre'
+      margin: '5px 0'
     }
   );
 
@@ -799,8 +776,6 @@ function createFooter() {
     fontSize: '13px',
     color: '#34495e',
     fontWeight: 'bold',
-    textAlign: 'center',
-    stretch: 'horizontal',
     margin: '5px'
   });
 
@@ -988,7 +963,7 @@ function updateVisualization() {
             backgroundColor: bgColor,
             padding: '18px',
             border: '3px solid #2c3e50',
-            maxWidth: '300px'
+            width: '300px'
           }
         });
 
