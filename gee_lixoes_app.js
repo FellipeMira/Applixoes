@@ -5,8 +5,10 @@
 var CONFIG = {
   // Assets
   rasterFolder: 'projects/ee-lixoes/assets/FINAL_RESULTS_BIN',
-  vectorAsset: 'projects/ee-lixoes/assets/RESULTADOS_VECT/METHOD2_IMPROVED_THRESHOLDS_73_MIN_AREAS_1500_FV',
-  validatedVectorAsset: 'projects/ee-lixoes/assets/Polygons/PolygonsDumpValid_FV',
+  vectorCollection: 'projects/ee-lixoes/assets/RESULTADOS_VECT/METHOD2_IMPROVED_THRESHOLDS_73_MIN_AREAS_1500',
+  vectorFeatureView: 'projects/ee-lixoes/assets/RESULTADOS_VECT/METHOD2_IMPROVED_THRESHOLDS_73_MIN_AREAS_1500_FV',
+  validatedCollection: 'projects/ee-lixoes/assets/Polygons/PolygonsDumpValid',
+  validatedFeatureView: 'projects/ee-lixoes/assets/Polygons/PolygonsDumpValid_FV',
   
   // Visualização
   probabilityPalette: ['#050220', '#0f567f', '#1e90ff', '#6dc07a', '#efff36', '#FF0000'],
@@ -50,14 +52,14 @@ function loadRasterData() {
  * Carrega dados vetoriais
  */
 function loadVectorData() {
-  return ee.FeatureCollection(CONFIG.vectorAsset);
+  return ee.FeatureCollection(CONFIG.vectorCollection);
 }
 
 /**
  * Carrega dados vetoriais de lixões validados
  */
 function loadValidatedVectorData() {
-  return ee.FeatureCollection(CONFIG.validatedVectorAsset);
+  return ee.FeatureCollection(CONFIG.validatedCollection);
 }
 
 // ===========================
@@ -829,7 +831,7 @@ function updateVisualization() {
 
   // Vetor com estilo otimizado
   if (showVector) {
-    var vectorLayer = ui.Map.FeatureViewLayer(CONFIG.vectorAsset);
+    var vectorLayer = ui.Map.FeatureViewLayer(CONFIG.vectorFeatureView);
     vectorLayer.setName('Polígonos Detectados');
     vectorLayer.setStyle(createFeatureViewStyle(metric));
     vectorLayer.setQuery({filter: viewFilter});
@@ -837,7 +839,7 @@ function updateVisualization() {
   }
 
   // Camada de lixões validados com destaque
-  var validatedLayer = ui.Map.FeatureViewLayer(CONFIG.validatedVectorAsset);
+  var validatedLayer = ui.Map.FeatureViewLayer(CONFIG.validatedFeatureView);
   validatedLayer.setName('Lixões Validados');
   validatedLayer.setStyle({
     color: '#F31212',
