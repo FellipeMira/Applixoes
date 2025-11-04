@@ -83,20 +83,22 @@ function loadVectorData() {
 
 /**
  * Detecta quais colunas de probabilidade existem no vetor
+ * Prioriza 'prob_median' como coluna padrão de referência
  */
 function detectProbabilityColumns(vectorData) {
   var first = ee.Feature(vectorData.first());
   var properties = first.propertyNames();
-  
-  var possibleColumns = ['prob_media', 'prob_mean', 'prob_max'];
+
+  // Lista ordenada por prioridade: prob_median é a coluna padrão preferida
+  var possibleColumns = ['prob_median', 'prob_media', 'prob_mean', 'prob_max'];
   var availableColumns = [];
-  
+
   possibleColumns.forEach(function(col) {
     if (properties.contains(col).getInfo()) {
       availableColumns.push(col);
     }
   });
-  
+
   return availableColumns;
 }
 
@@ -991,10 +993,11 @@ var vectorData = loadVectorData();
 var probColumns = detectProbabilityColumns(vectorData);
 
 if (probColumns.length === 0) {
-  print('ERRO: Nenhuma coluna de probabilidade encontrada (prob_media, prob_mean, prob_max)');
+  print('ERRO: Nenhuma coluna de probabilidade encontrada (prob_median, prob_media, prob_mean, prob_max)');
   print('Verifique os dados vetoriais');
 } else {
   print('Colunas de probabilidade disponíveis:', probColumns);
+  print('Coluna padrão selecionada para análise:', probColumns[0]);
   
   // Construir interface
   var filterSection = createFilterSection(vectorData, probColumns);
