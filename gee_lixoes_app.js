@@ -271,7 +271,7 @@ function createAppHeader() {
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
       width: '100%',
-      padding: '22px 30px 26px 30px',
+      padding: '16px 26px 18px 26px',
       backgroundColor: '#0b1f33'
     }
   });
@@ -297,7 +297,8 @@ function createAppHeader() {
       fontSize: '21px',
       fontWeight: 'bold',
       color: '#ffffff',
-      margin: '0'
+      margin: '0',
+      backgroundColor: 'rgba(0,0,0,0)'
     }
   });
 
@@ -306,8 +307,9 @@ function createAppHeader() {
     style: {
       fontSize: '12px',
       color: '#d0e6f4',
-      margin: '6px 0 0 0',
-      fontStyle: 'italic'
+      margin: '4px 0 0 0',
+      fontStyle: 'italic',
+      backgroundColor: 'rgba(0,0,0,0)'
     }
   });
 
@@ -317,7 +319,8 @@ function createAppHeader() {
       fontSize: '11px',
       color: '#9ac0d8',
       margin: '8px 0 0 0',
-      fontStyle: 'italic'
+      fontStyle: 'italic',
+      backgroundColor: 'rgba(0,0,0,0)'
     }
   });
 
@@ -343,9 +346,9 @@ function createAppHeader() {
         backgroundColor: 'rgba(9, 25, 42, 0.85)',
         border: '1px solid ' + accentColor,
         borderRadius: '6px',
-        padding: '12px 18px',
-        margin: '0 12px 0 0',
-        minWidth: '160px'
+        padding: '10px 14px',
+        margin: '0 10px 0 0',
+        minWidth: '130px'
       }
     });
 
@@ -353,18 +356,20 @@ function createAppHeader() {
       value: titleText,
       style: {
         color: '#cfe8f5',
-        fontSize: '11px',
-        margin: '0 0 6px 0'
+        fontSize: '10px',
+        margin: '0 0 4px 0',
+        backgroundColor: 'rgba(0,0,0,0)'
       }
     });
 
     var valueLabel = ui.Label({
       value: '-',
       style: {
-        fontSize: '20px',
+        fontSize: '18px',
         fontWeight: 'bold',
         color: accentColor,
-        margin: '0'
+        margin: '0',
+        backgroundColor: 'rgba(0,0,0,0)'
       }
     });
 
@@ -376,7 +381,7 @@ function createAppHeader() {
 
   var totalSummary = createSummaryCard('Ocorrências monitoradas', '#4fc3f7');
   var avgSummary = createSummaryCard('Probabilidade média', '#81c784');
-  var highSummary = createSummaryCard('Áreas de alto risco', '#ff8a65');
+  var highSummary = createSummaryCard('Áreas de alta probabilidade', '#ff8a65');
 
   summaryRow.add(totalSummary.card);
   summaryRow.add(avgSummary.card);
@@ -402,10 +407,10 @@ function createFilterSection(vectorData, probColumns) {
   var filterPanel = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#ffffff',
+      backgroundColor: 'rgba(0,0,0,0)',
       padding: '18px',
       margin: '0 0 15px 0',
-      border: '1px solid #e0e0e0',
+      border: '1px solid rgba(255,255,255,0.12)',
       borderRadius: '4px'
     }
   });
@@ -416,7 +421,8 @@ function createFilterSection(vectorData, probColumns) {
     color: '#1a252f',
     margin: '0 0 14px 0',
     textAlign: 'center',
-    stretch: 'horizontal'
+    stretch: 'horizontal',
+    backgroundColor: 'rgba(0,0,0,0)'
   }));
 
   // Filtro de estado
@@ -424,7 +430,8 @@ function createFilterSection(vectorData, probColumns) {
     fontSize: '13px',
     color: '#2c3e50',
     margin: '8px 0 5px 0',
-    fontWeight: '600'
+    fontWeight: '600',
+    backgroundColor: 'rgba(0,0,0,0)'
   });
   var states = ['Todos'].concat(getUniqueStates(vectorData));
   var stateSelect = ui.Select({
@@ -442,7 +449,8 @@ function createFilterSection(vectorData, probColumns) {
     fontSize: '13px',
     color: '#2c3e50',
     margin: '8px 0 5px 0',
-    fontWeight: '600'
+    fontWeight: '600',
+    backgroundColor: 'rgba(0,0,0,0)'
   });
   var muniSelect = ui.Select({
     items: ['Todos'],
@@ -460,7 +468,8 @@ function createFilterSection(vectorData, probColumns) {
     fontSize: '13px',
     color: '#2c3e50',
     margin: '8px 0 5px 0',
-    fontWeight: '600'
+    fontWeight: '600',
+    backgroundColor: 'rgba(0,0,0,0)'
   });
   var muniSearchBox = ui.Textbox({
     placeholder: 'Digite o nome do município...',
@@ -537,42 +546,6 @@ function createFilterSection(vectorData, probColumns) {
   });
   filterPanel.add(separator);
 
-  // Controle de opacidade do raster
-  var opacityLabel = ui.Label('Opacidade da camada raster:', {
-    fontSize: '13px',
-    color: '#2c3e50',
-    margin: '8px 0 5px 0',
-    fontWeight: '600'
-  });
-
-  var opacitySlider = ui.Slider({
-    min: 0,
-    max: 1,
-    value: 0.65,
-    step: 0.05,
-    style: {
-      width: '100%',
-      margin: '0 0 8px 0'
-    }
-  });
-
-  var opacityValueLabel = ui.Label('65%', {
-    fontSize: '11px',
-    color: '#7f8c8d',
-    margin: '0 0 12px 0',
-    textAlign: 'center',
-    stretch: 'horizontal'
-  });
-
-  opacitySlider.onChange(function(value) {
-    opacityValueLabel.setValue((value * 100).toFixed(0) + '%');
-    updateVisualization();
-  });
-
-  filterPanel.add(opacityLabel);
-  filterPanel.add(opacitySlider);
-  filterPanel.add(opacityValueLabel);
-
   // Checkboxes para controle de camadas
   var layersLabel = ui.Label('Visibilidade das camadas:', {
     fontSize: '13px',
@@ -617,12 +590,12 @@ function createFilterSection(vectorData, probColumns) {
       padding: '10px 16px',
       fontSize: '13px',
       fontWeight: 'bold',
-      textAlign: 'center'
+      textAlign: 'center',
+      border: '2px solid #7f8c8d'
     },
     onClick: function() {
       stateSelect.setValue('Todos');
       muniSelect.setValue('Todos');
-      opacitySlider.setValue(0.65);
       rasterCheckbox.setValue(true);
       vectorCheckbox.setValue(true);
       mapPanel.setCenter(CONFIG.mapCenter.lon, CONFIG.mapCenter.lat, CONFIG.mapZoom);
@@ -636,7 +609,6 @@ function createFilterSection(vectorData, probColumns) {
     panel: filterPanel,
     stateSelect: stateSelect,
     muniSelect: muniSelect,
-    opacitySlider: opacitySlider,
     rasterCheckbox: rasterCheckbox,
     vectorCheckbox: vectorCheckbox
   };
@@ -887,8 +859,8 @@ function updateVisualization() {
   var styledVector = styleVector(filteredVector, metric);
   
   // Adicionar camadas ao mapa
-  // Raster com opacidade otimizada para melhor visualização sobre satélite
-  var opacity = filters.opacitySlider ? filters.opacitySlider.getValue() : 0.65;
+  // Raster com opacidade fixa para visualização sobre satélite
+  var opacity = 1;
   var showRaster = filters.rasterCheckbox ? filters.rasterCheckbox.getValue() : true;
   var showVector = filters.vectorCheckbox ? filters.vectorCheckbox.getValue() : true;
 
