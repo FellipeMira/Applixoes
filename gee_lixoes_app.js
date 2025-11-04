@@ -523,7 +523,7 @@ function createFilterSection(vectorData, probColumns) {
 
   var rasterCheckbox = ui.Checkbox({
     label: 'Exibir camada raster',
-    value: true,
+    value: false,
     style: {
       margin: '5px 0',
       fontSize: '12px'
@@ -563,7 +563,7 @@ function createFilterSection(vectorData, probColumns) {
     onClick: function() {
       stateSelect.setValue('Todos');
       muniSelect.setValue('Todos');
-      rasterCheckbox.setValue(true);
+      rasterCheckbox.setValue(false);
       vectorCheckbox.setValue(true);
       mapPanel.setCenter(CONFIG.mapCenter.lon, CONFIG.mapCenter.lat, CONFIG.mapZoom);
       updateVisualization();
