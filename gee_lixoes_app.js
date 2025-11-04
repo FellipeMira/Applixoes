@@ -14,7 +14,6 @@
  * - Visualização com paleta otimizada (azul escuro → vermelho)
  * - Destaque visual para polígonos de alta probabilidade
  * - Filtros espaciais por estado e município
- * - Busca interativa de municípios
  * - Métricas agregadas e distribuição por faixa
  * - Popup informativo ao clicar em polígonos
  * - Interface otimizada para renderização
@@ -463,58 +462,24 @@ function createFilterSection(vectorData, probColumns) {
     disabled: true
   });
 
-  // Campo de busca de município
-  var muniSearchLabel = ui.Label('Buscar município:', {
-    fontSize: '13px',
-    color: '#2c3e50',
-    margin: '8px 0 5px 0',
-    fontWeight: '600',
-    backgroundColor: 'rgba(0,0,0,0)'
-  });
-  var muniSearchBox = ui.Textbox({
-    placeholder: 'Digite o nome do município...',
-    style: {
-      width: '100%',
-      margin: '0 0 12px 0',
-      padding: '6px'
-    },
-    disabled: true
-  });
-  
   // Atualizar municípios quando estado mudar
   stateSelect.onChange(function(state) {
     if (state === 'Todos') {
       muniSelect.items().reset(['Todos']);
       muniSelect.setDisabled(true);
-      muniSearchBox.setDisabled(true);
     } else {
       var municipalities = ['Todos'].concat(getMunicipalities(vectorData, state));
       muniSelect.items().reset(municipalities);
       muniSelect.setDisabled(false);
-      muniSearchBox.setDisabled(false);
     }
     muniSelect.setValue('Todos');
     updateVisualization();
-  });
-  
-  // Busca de município
-  muniSearchBox.onChange(function(text) {
-    if (text && stateSelect.getValue() !== 'Todos') {
-      var state = stateSelect.getValue();
-      var allMunis = getMunicipalities(vectorData, state);
-      var filtered = allMunis.filter(function(muni) {
-        return muni.toLowerCase().indexOf(text.toLowerCase()) !== -1;
-      });
-      muniSelect.items().reset(['Todos'].concat(filtered));
-    }
   });
 
   filterPanel.add(stateLabel);
   filterPanel.add(stateSelect);
   filterPanel.add(muniLabel);
   filterPanel.add(muniSelect);
-  filterPanel.add(muniSearchLabel);
-  filterPanel.add(muniSearchBox);
   
   // Botão aplicar filtros - otimizado para renderização
   var applyButton = ui.Button({
@@ -622,10 +587,10 @@ function createMetricsPanel() {
   var metricsPanel = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#ffffff',
+      backgroundColor: 'rgba(0,0,0,0)',
       padding: '18px',
       margin: '0 0 15px 0',
-      border: '1px solid #e0e0e0',
+      border: '1px solid rgba(255,255,255,0.12)',
       borderRadius: '4px'
     }
   });
@@ -659,8 +624,8 @@ function createMetricsPanel() {
     style: {
       margin: '14px 0 0 0',
       padding: '14px',
-      backgroundColor: '#f8f9fa',
-      border: '2px solid #dee2e6',
+      backgroundColor: 'rgba(0,0,0,0)',
+      border: '1px solid rgba(255,255,255,0.12)',
       borderRadius: '4px'
     }
   });
@@ -765,10 +730,10 @@ function createFooterWithLogos() {
   var footerPanel = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#ffffff',
+      backgroundColor: 'rgba(0,0,0,0)',
       padding: '18px',
       margin: '15px 0 0 0',
-      border: '1px solid #e0e0e0',
+      border: '1px solid rgba(255,255,255,0.12)',
       borderRadius: '4px'
     }
   });
