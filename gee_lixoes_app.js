@@ -254,21 +254,34 @@ mapPanel.setOptions('hybrid'); // Base map híbrido (satélite + nomes)
 mapPanel.style().set('cursor', 'crosshair');
 mapPanel.style().set('stretch', 'both');
 
+// Referências globais para atualização dinâmica
+var headerSummary = null;
+var metrics = null;
+var filters = null;
+
 // ===========================
 // CONSTRUÇÃO DA UI
 // ===========================
 
 /**
- * Cria cabeçalho do aplicativo com título destacado
+ * Cria cabeçalho do aplicativo com título e cartões de resumo
  */
 function createAppHeader() {
   var header = ui.Panel({
-    layout: ui.Panel.Layout.flow('horizontal'),
+    layout: ui.Panel.Layout.flow('vertical'),
     style: {
       width: '100%',
-      padding: '20px 28px',
+      padding: '22px 30px 26px 30px',
       backgroundColor: '#0b1f33',
-      borderBottom: '3px solid #176087'
+      borderBottom: '4px solid #176087'
+    }
+  });
+
+  var topRow = ui.Panel({
+    layout: ui.Panel.Layout.flow('horizontal'),
+    style: {
+      stretch: 'horizontal',
+      margin: '0 0 16px 0'
     }
   });
 
@@ -282,7 +295,7 @@ function createAppHeader() {
   var title = ui.Label({
     value: 'ANÁLISE DE PROBABILIDADE DE LIXÕES',
     style: {
-      fontSize: '20px',
+      fontSize: '21px',
       fontWeight: 'bold',
       color: '#ffffff',
       letterSpacing: '1px',
@@ -301,12 +314,89 @@ function createAppHeader() {
     }
   });
 
+  var filterContextLabel = ui.Label({
+    value: 'Visão geral nacional',
+    style: {
+      fontSize: '11px',
+      color: '#9ac0d8',
+      margin: '8px 0 0 0',
+      fontStyle: 'italic'
+    }
+  });
+
   titleColumn.add(title);
   titleColumn.add(subtitle);
+  titleColumn.add(filterContextLabel);
 
-  header.add(titleColumn);
+  topRow.add(titleColumn);
 
-  return header;
+  header.add(topRow);
+
+  var summaryRow = ui.Panel({
+    layout: ui.Panel.Layout.flow('horizontal'),
+    style: {
+      stretch: 'horizontal'
+    }
+  });
+
+  function createSummaryCard(titleText, accentColor) {
+    var card = ui.Panel({
+      layout: ui.Panel.Layout.flow('vertical'),
+      style: {
+        backgroundColor: 'rgba(9, 25, 42, 0.85)',
+        border: '1px solid ' + accentColor,
+        borderRadius: '6px',
+        padding: '12px 18px',
+        margin: '0 12px 0 0',
+        minWidth: '160px'
+      }
+    });
+
+    var label = ui.Label({
+      value: titleText,
+      style: {
+        color: '#cfe8f5',
+        fontSize: '11px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.8px',
+        margin: '0 0 6px 0'
+      }
+    });
+
+    var valueLabel = ui.Label({
+      value: '-',
+      style: {
+        fontSize: '20px',
+        fontWeight: 'bold',
+        color: accentColor,
+        margin: '0'
+      }
+    });
+
+    card.add(label);
+    card.add(valueLabel);
+
+    return {card: card, valueLabel: valueLabel};
+  }
+
+  var totalSummary = createSummaryCard('Ocorrências monitoradas', '#4fc3f7');
+  var avgSummary = createSummaryCard('Probabilidade média', '#81c784');
+  var highSummary = createSummaryCard('Áreas de alto risco', '#ff8a65');
+
+  summaryRow.add(totalSummary.card);
+  summaryRow.add(avgSummary.card);
+  summaryRow.add(highSummary.card);
+  highSummary.card.style().set('margin', '0');
+
+  header.add(summaryRow);
+
+  return {
+    panel: header,
+    filterLabel: filterContextLabel,
+    totalSummaryLabel: totalSummary.valueLabel,
+    avgSummaryLabel: avgSummary.valueLabel,
+    highSummaryLabel: highSummary.valueLabel
+  };
 }
 
 /**
@@ -777,6 +867,16 @@ function updateVisualization() {
   var metric = probColumns[0];
   var state = filters.stateSelect.getValue();
   var muni = filters.muniSelect.getValue();
+
+  if (headerSummary) {
+    var scopeText = 'Visão geral nacional';
+    if (state !== 'Todos' && muni !== 'Todos' && muni !== null) {
+      scopeText = muni + ' • ' + state;
+    } else if (state !== 'Todos') {
+      scopeText = 'Estado selecionado: ' + state;
+    }
+    headerSummary.filterLabel.setValue(scopeText);
+  }
   
   // Filtrar dados vetoriais
   var filteredVector = vectorData;
@@ -905,14 +1005,24 @@ function updateVisualization() {
  * Calcula e exibe estatísticas sobre os polígonos filtrados
  */
 function updateMetrics(features, probColumn) {
+  if (!metrics) {
+    return;
+  }
+
   var count = features.size();
   var avgProb = features.aggregate_mean(probColumn);
 
   // Atualizar labels básicos com formatação aprimorada
   var totalOcorrencias = count.getInfo();
-  metrics.totalLabel.setValue('Total de ocorrências: ' + totalOcorrencias);
+  var formattedTotal = totalOcorrencias
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  metrics.totalLabel.setValue('Total de ocorrências: ' + formattedTotal);
 
-  var avgProbValue = (avgProb.getInfo() * 100).toFixed(1).replace('.', ',');
+  var avgProbInfo = avgProb.getInfo();
+  var avgProbValue = avgProbInfo
+    ? (avgProbInfo * 100).toFixed(1).replace('.', ',')
+    : '0,0';
   metrics.avgProbLabel.setValue('Probabilidade média: ' + avgProbValue + '%');
 
   // Calcular e exibir distribuição por faixa de probabilidade
@@ -920,6 +1030,16 @@ function updateMetrics(features, probColumn) {
   metrics.lowLabel.setValue('Baixa: ' + rangeStats.baixa + ' áreas');
   metrics.medLabel.setValue('Média: ' + rangeStats.media + ' áreas');
   metrics.highLabel.setValue('Alta: ' + rangeStats.alta + ' áreas');
+
+  if (headerSummary) {
+    headerSummary.totalSummaryLabel.setValue(formattedTotal);
+    headerSummary.avgSummaryLabel.setValue(avgProbValue + '%');
+    headerSummary.highSummaryLabel.setValue(
+      rangeStats.alta
+        .toString()
+        .replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    );
+  }
 }
 
 // ===========================
@@ -942,11 +1062,11 @@ if (probColumns.length === 0) {
   
   // Construir interface
   var filterSection = createFilterSection(vectorData, probColumns);
-  var filters = filterSection;
+  filters = filterSection;
   sidePanel.add(filterSection.panel);
 
   var metricsSection = createMetricsPanel();
-  var metrics = metricsSection;
+  metrics = metricsSection;
   sidePanel.add(metricsSection.panel);
 
   // Adicionar footer com logos dos apoiadores
@@ -970,7 +1090,8 @@ if (probColumns.length === 0) {
 
   appLayout.style().set('stretch', 'both');
 
-  appLayout.add(createAppHeader());
+  headerSummary = createAppHeader();
+  appLayout.add(headerSummary.panel);
   appLayout.add(mainPanel);
 
   // Limpar root e adicionar painel principal
