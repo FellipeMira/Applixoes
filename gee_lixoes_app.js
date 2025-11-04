@@ -1,28 +1,3 @@
-/**
- * =====================================================
- * APLICATIVO GOOGLE EARTH ENGINE
- * Análise de Probabilidade de Lixões
- * =====================================================
- *
- * DESCRIÇÃO:
- * Sistema interativo de visualização e análise espacial para
- * identificação de áreas com probabilidade de lixões utilizando
- * dados raster e vetoriais processados no Google Earth Engine.
- *
- * FUNCIONALIDADES:
- * - Base map híbrido (satélite + nomes) para melhor contexto
- * - Visualização com paleta otimizada (azul escuro → vermelho)
- * - Destaque visual para polígonos de alta probabilidade
- * - Filtros espaciais por estado e município
- * - Métricas agregadas e distribuição por faixa
- * - Popup informativo ao clicar em polígonos
- * - Interface otimizada para renderização
- *
- * VERSÃO: 2.0 - Otimizada e Melhorada
- * DESENVOLVIDO COM: Google Earth Engine Code Editor
- * =====================================================
- */
-
 // ===========================
 // CONFIGURAÇÕES E CONSTANTES
 // ===========================
@@ -30,7 +5,7 @@
 var CONFIG = {
   // Assets
   rasterFolder: 'projects/ee-lixoes/assets/FINAL_RESULTS_BIN',
-  vectorAsset: 'projects/lixoes-467518/assets/resultsVect/MEDIAN_IMPROVED_THRESHOLDS_70_MIN_AREAS_1000_SCIKIT_ALL_METRICS_V6',
+  vectorAsset: 'projects/ee-lixoes/assets/RESULTADOS_VECT/METHOD2_IMPROVED_THRESHOLDS_73_MIN_AREAS_1500',
   validatedVectorAsset: 'projects/ee-lixoes/assets/Polygons/PolygonsDumpValid',
   
   // Visualização
@@ -41,8 +16,8 @@ var CONFIG = {
   // Faixas de probabilidade
   probabilityRanges: {
     baixa: [0, 0.76],
-    media: [0.76, 0.832],
-    alta: [0.832, 1.0]
+    media: [0.76, 0.82],
+    alta: [0.82, 1.0]
   }
 };
 
@@ -75,7 +50,7 @@ function loadRasterData() {
  * Carrega dados vetoriais
  */
 function loadVectorData() {
-  return ee.FeatureCollection(CONFIG.vectorAsset);
+  return ee.FeatureCollection(CONFIG.vectorAsset).filter(ee.Filter.gte('area_m2', 200));
 }
 
 /**
