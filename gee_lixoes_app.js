@@ -279,14 +279,16 @@ function createAppHeader() {
     layout: ui.Panel.Layout.flow('horizontal'),
     style: {
       stretch: 'horizontal',
-      margin: '0 0 16px 0'
+      margin: '0 0 16px 0',
+      backgroundColor: 'rgba(0,0,0,0)'
     }
   });
 
   var titleColumn = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      stretch: 'horizontal'
+      stretch: 'horizontal',
+      backgroundColor: 'rgba(0,0,0,0)'
     }
   });
 
@@ -334,7 +336,8 @@ function createAppHeader() {
   var summaryRow = ui.Panel({
     layout: ui.Panel.Layout.flow('horizontal'),
     style: {
-      stretch: 'horizontal'
+      stretch: 'horizontal',
+      backgroundColor: 'rgba(0,0,0,0)'
     }
   });
 
