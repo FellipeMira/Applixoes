@@ -840,7 +840,6 @@ function updateVisualization() {
   if (showVector) {
     var vectorLayerOptions = {
       name: 'Polígonos Detectados',
-      shown: true,
       style: createFeatureViewStyle(metric)
     };
     if (viewFilter) {
@@ -853,7 +852,6 @@ function updateVisualization() {
   // Camada de lixões validados com destaque
   var validatedLayerOptions = {
     name: 'Lixões Validados',
-    shown: true,
     style: {
       color: '#F31212',
       fillColor: '#F31212',
