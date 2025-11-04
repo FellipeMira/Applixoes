@@ -39,8 +39,8 @@ var CONFIG = {
   
   // Faixas de probabilidade
   probabilityRanges: {
-    baixa: [0, 0.72],
-    media: [0.72, 0.81],
+    baixa: [0, 0.76],
+    media: [0.76, 0.81],
     alta: [0.81, 1.0]
   }
 };
@@ -491,13 +491,14 @@ function createFilterSection(vectorData, probColumns) {
       width: '100%',
       margin: '15px 0 5px 0',
       backgroundColor: '#2980b9',
-      color: '#FFFFFF',
+      color: '#403e3e',
       padding: '12px 16px',
       fontSize: '14px',
       fontWeight: 'bold',
       textAlign: 'center',
       border: '2px solid #1a5490',
-      borderRadius: '4px'
+      borderRadius: '4px',
+      backgroundColor: 'rgba(0,0,0,0)'
     },
     onClick: updateVisualization
   });
@@ -554,12 +555,13 @@ function createFilterSection(vectorData, probColumns) {
       width: '100%',
       margin: '8px 0 0 0',
       backgroundColor: '#95a5a6',
-      color: '#FFFFFF',
+      color: '#403e3e',
       padding: '10px 16px',
       fontSize: '13px',
       fontWeight: 'bold',
       textAlign: 'center',
-      border: '2px solid #7f8c8d'
+      border: '2px solid #7f8c8d',
+      backgroundColor: 'rgba(0,0,0,0)'
     },
     onClick: function() {
       stateSelect.setValue('Todos');
@@ -695,7 +697,7 @@ function createMapTitle() {
     }
   });
 
-var title = ui.Label('ANÁLISE DE LIXÕES', {
+var title = ui.Label('Mapeamento', {
   fontSize: '18px',
   fontWeight: 'bold',
   color: '#ffffff',
@@ -708,7 +710,7 @@ var title = ui.Label('ANÁLISE DE LIXÕES', {
   stretch: 'horizontal'              // ajuda o alinhamento central
 });
 
-var subtitle = ui.Label('Mapeamento', {
+var subtitle = ui.Label('2024-2025', {
   fontSize: '11px',
   color: '#d0e6f4',
   backgroundColor: 'rgba(0,0,0,0)',   // transparente
