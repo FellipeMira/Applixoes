@@ -41,8 +41,8 @@ var CONFIG = {
   // Faixas de probabilidade
   probabilityRanges: {
     baixa: [0, 0.76],
-    media: [0.76, 0.81],
-    alta: [0.81, 1.0]
+    media: [0.76, 0.832],
+    alta: [0.832, 1.0]
   }
 };
 
@@ -185,9 +185,6 @@ function getFeatureStyle(feature, probColumn) {
   var prob = ee.Number(feature.get(probColumn));
 
   // Paleta de cores baseada nas faixas de probabilidade
-  // Baixa (0-0.75): Verde - #4CAF50
-  // Média (0.75-0.89): Laranja - #FF9800
-  // Alta (0.89-1.0): Vermelho - #F44336
   var color = ee.Algorithms.If(
     prob.lt(0.75), '#4CAF50',
     ee.Algorithms.If(
@@ -240,10 +237,9 @@ function styleVector(vectorData, probColumn) {
  */
 function styleValidatedSites(validatedCollection) {
   return validatedCollection.style({
-    color: '#f39c12',
-    fillColor: '#f1c40f66',
-    width: 3,
-    fillOpacity: 0.2
+    color: '#F31212',
+    fillColor: '#F31212',
+    width: 3
   });
 }
 
@@ -404,12 +400,12 @@ function createAppHeader() {
   }
 
   var totalSummary = createSummaryCard('Ocorrências monitoradas', '#4fc3f7');
-  var avgSummary = createSummaryCard('Probabilidade média', '#81c784');
+  // var avgSummary = createSummaryCard('Probabilidade média', '#81c784');
   var highSummary = createSummaryCard('Áreas de alta probabilidade', '#ff8a65');
   var validatedSummary = createSummaryCard('Lixões validados', '#f1c40f');
 
   summaryRow.add(totalSummary.card);
-  summaryRow.add(avgSummary.card);
+  // summaryRow.add(avgSummary.card);
   summaryRow.add(highSummary.card);
   summaryRow.add(validatedSummary.card);
   validatedSummary.card.style().set('margin', '0');
@@ -420,7 +416,7 @@ function createAppHeader() {
     panel: header,
     filterLabel: filterContextLabel,
     totalSummaryLabel: totalSummary.valueLabel,
-    avgSummaryLabel: avgSummary.valueLabel,
+    // avgSummaryLabel: avgSummary.valueLabel,
     highSummaryLabel: highSummary.valueLabel,
     validatedSummaryLabel: validatedSummary.valueLabel
   };
@@ -1017,7 +1013,7 @@ function updateMetrics(features, validatedFeatures, probColumn) {
 
   if (headerSummary) {
     headerSummary.totalSummaryLabel.setValue(formattedTotal);
-    headerSummary.avgSummaryLabel.setValue(avgProbValue + '%');
+    // headerSummary.avgSummaryLabel.setValue(avgProbValue + '%');
     headerSummary.highSummaryLabel.setValue(
       rangeStats.alta
         .toString()
