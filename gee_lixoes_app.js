@@ -272,8 +272,7 @@ function createAppHeader() {
     style: {
       width: '100%',
       padding: '22px 30px 26px 30px',
-      backgroundColor: '#0b1f33',
-      borderBottom: '4px solid #176087'
+      backgroundColor: '#0b1f33'
     }
   });
 
@@ -298,8 +297,6 @@ function createAppHeader() {
       fontSize: '21px',
       fontWeight: 'bold',
       color: '#ffffff',
-      letterSpacing: '1px',
-      textTransform: 'uppercase',
       margin: '0'
     }
   });
@@ -357,8 +354,6 @@ function createAppHeader() {
       style: {
         color: '#cfe8f5',
         fontSize: '11px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.8px',
         margin: '0 0 6px 0'
       }
     });
@@ -764,7 +759,6 @@ var title = ui.Label('ANÁLISE DE LIXÕES', {
   fontSize: '18px',
   fontWeight: 'bold',
   color: '#ffffff',
-  letterSpacing: '1px',
   textAlign: 'center',
   whiteSpace: 'pre',
   margin: '0',
