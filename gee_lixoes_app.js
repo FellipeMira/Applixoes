@@ -844,9 +844,9 @@ function updateVisualization() {
       style: createFeatureViewStyle(metric)
     });
     if (viewFilter) {
-      vectorLayer.setQuery({filter: viewFilter});
+      vectorLayer.setDefinition({filter: viewFilter});
     } else {
-      vectorLayer.setQuery({});
+      vectorLayer.setDefinition(null);
     }
     mapPanel.layers().add(vectorLayer);
   }
@@ -862,9 +862,9 @@ function updateVisualization() {
     }
   });
   if (viewFilter) {
-    validatedLayer.setQuery({filter: viewFilter});
+    validatedLayer.setDefinition({filter: viewFilter});
   } else {
-    validatedLayer.setQuery({});
+    validatedLayer.setDefinition(null);
   }
   mapPanel.layers().add(validatedLayer);
 
