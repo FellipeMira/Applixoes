@@ -184,34 +184,24 @@ function calculateStatsByState(vectorData, probColumn) {
 function getFeatureStyle(feature, probColumn) {
   var prob = ee.Number(feature.get(probColumn));
 
-  // Paleta de cores baseada nas faixas de probabilidade
-  var color = ee.Algorithms.If(
-    prob.lt(76), '#4CAF50',
-    ee.Algorithms.If(
-      prob.lt(0.832), '#FF9800',
-      '#F44336'
-    )
-  );
+  // Índices categóricos baseados nos limites de probabilidade
+  var colorIndex = prob.gte(0.832).multiply(2)
+    .add(prob.gte(0.76).multiply(prob.lt(0.832))).toInt();
+  var colorPalette = ee.List(['#4CAF50', '#FF9800', '#F44336']);
+  var color = ee.String(colorPalette.get(colorIndex));
 
   // Destaque para polígonos de alta probabilidade
   // Alta probabilidade: borda mais grossa (3px) e opacidade máxima (0.95)
   // Média probabilidade: borda média (2px) e opacidade alta (0.85)
   // Baixa probabilidade: borda fina (1.5px) e opacidade média (0.65)
-  var borderWidth = ee.Algorithms.If(
-    prob.lt(0.75), 1.5,
-    ee.Algorithms.If(
-      prob.lt(0.89), 2,
-      3
-    )
-  );
+  var borderIndex = prob.gte(0.89).multiply(2)
+    .add(prob.gte(0.75).multiply(prob.lt(0.89))).toInt();
+  var borderOptions = ee.List([1.5, 2, 3]);
+  var borderWidth = ee.Number(borderOptions.get(borderIndex));
 
-  var fillOpacity = ee.Algorithms.If(
-    prob.lt(0.75), 0.65,
-    ee.Algorithms.If(
-      prob.lt(0.89), 0.85,
-      0.95
-    )
-  );
+  var opacityIndex = borderIndex;
+  var opacityOptions = ee.List([0.65, 0.85, 0.95]);
+  var fillOpacity = ee.Number(opacityOptions.get(opacityIndex));
 
   return feature.set({
     style: {
