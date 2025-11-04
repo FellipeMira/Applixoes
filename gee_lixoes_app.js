@@ -208,7 +208,7 @@ function getFeatureStyle(feature, probColumn) {
 
   return feature.set({
     style: {
-      color: '#000000',      // Borda preta para maior contraste
+      color: color,      // Borda preta para maior contraste
       fillColor: color,
       width: borderWidth,
       fillOpacity: fillOpacity
