@@ -31,12 +31,13 @@ var CONFIG = {
   // Assets
   rasterFolder: 'projects/ee-lixoes/assets/FINAL_RESULTS_BIN',
   vectorAsset: 'projects/lixoes-467518/assets/resultsVect/MEDIAN_IMPROVED_THRESHOLDS_70_MIN_AREAS_1000_SCIKIT_ALL_METRICS_V6',
-  
+  validatedDumpsAsset: 'projects/ee-lixoes/assets/Polygons/PolygonsDumpValid',
+
   // Visualização
   probabilityPalette: ['#050220', '#0f567f', '#1e90ff', '#6dc07a', '#efff36', '#FF0000'],
   mapCenter: {lon: -47.93, lat: -15.78}, // Centro do Brasil
   mapZoom: 4,
-  
+
   // Faixas de probabilidade
   probabilityRanges: {
     baixa: [0, 0.76],
@@ -75,6 +76,13 @@ function loadRasterData() {
  */
 function loadVectorData() {
   return ee.FeatureCollection(CONFIG.vectorAsset);
+}
+
+/**
+ * Carrega dados de lixões validados/confirmados
+ */
+function loadValidatedDumpsData() {
+  return ee.FeatureCollection(CONFIG.validatedDumpsAsset);
 }
 
 // ===========================
@@ -224,6 +232,23 @@ function getFeatureStyle(feature, probColumn) {
 function styleVector(vectorData, probColumn) {
   return vectorData.map(function(feature) {
     return getFeatureStyle(feature, probColumn);
+  });
+}
+
+/**
+ * Estilo especial para lixões validados/confirmados
+ * Destaque visual forte com cor amarela/dourada e borda grossa
+ */
+function styleValidatedDumps(validatedData) {
+  return validatedData.map(function(feature) {
+    return feature.set({
+      style: {
+        color: '#FFD700',        // Borda dourada para máximo destaque
+        fillColor: '#FFA500',    // Preenchimento laranja vibrante
+        width: 4,                // Borda bem grossa
+        fillOpacity: 0.75        // Opacidade alta mas não total para ver o fundo
+      }
+    });
   });
 }
 
@@ -386,11 +411,13 @@ function createAppHeader() {
   var totalSummary = createSummaryCard('Ocorrências monitoradas', '#4fc3f7');
   var avgSummary = createSummaryCard('Probabilidade média', '#81c784');
   var highSummary = createSummaryCard('Áreas de alta probabilidade', '#ff8a65');
+  var validatedSummary = createSummaryCard('Lixões validados', '#FFD700');
 
   summaryRow.add(totalSummary.card);
   summaryRow.add(avgSummary.card);
   summaryRow.add(highSummary.card);
-  highSummary.card.style().set('margin', '0');
+  summaryRow.add(validatedSummary.card);
+  validatedSummary.card.style().set('margin', '0');
 
   header.add(summaryRow);
 
@@ -399,7 +426,8 @@ function createAppHeader() {
     filterLabel: filterContextLabel,
     totalSummaryLabel: totalSummary.valueLabel,
     avgSummaryLabel: avgSummary.valueLabel,
-    highSummaryLabel: highSummary.valueLabel
+    highSummaryLabel: highSummary.valueLabel,
+    validatedSummaryLabel: validatedSummary.valueLabel
   };
 }
 
@@ -539,16 +567,29 @@ function createFilterSection(vectorData, probColumns) {
     label: 'Exibir polígonos',
     value: true,
     style: {
-      margin: '5px 0 12px 0',
+      margin: '5px 0',
       fontSize: '12px'
+    }
+  });
+
+  var validatedCheckbox = ui.Checkbox({
+    label: 'Exibir lixões validados',
+    value: true,
+    style: {
+      margin: '5px 0 12px 0',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      color: '#FFA500'
     }
   });
 
   rasterCheckbox.onChange(updateVisualization);
   vectorCheckbox.onChange(updateVisualization);
+  validatedCheckbox.onChange(updateVisualization);
 
   filterPanel.add(rasterCheckbox);
   filterPanel.add(vectorCheckbox);
+  filterPanel.add(validatedCheckbox);
 
   // Botão de reset
   var resetButton = ui.Button({
@@ -570,6 +611,7 @@ function createFilterSection(vectorData, probColumns) {
       muniSelect.setValue('Todos');
       rasterCheckbox.setValue(true);
       vectorCheckbox.setValue(true);
+      validatedCheckbox.setValue(true);
       mapPanel.setCenter(CONFIG.mapCenter.lon, CONFIG.mapCenter.lat, CONFIG.mapZoom);
       updateVisualization();
     }
@@ -582,7 +624,8 @@ function createFilterSection(vectorData, probColumns) {
     stateSelect: stateSelect,
     muniSelect: muniSelect,
     rasterCheckbox: rasterCheckbox,
-    vectorCheckbox: vectorCheckbox
+    vectorCheckbox: vectorCheckbox,
+    validatedCheckbox: validatedCheckbox
   };
 }
 
@@ -835,6 +878,7 @@ function updateVisualization() {
   var opacity = 1;
   var showRaster = filters.rasterCheckbox ? filters.rasterCheckbox.getValue() : true;
   var showVector = filters.vectorCheckbox ? filters.vectorCheckbox.getValue() : true;
+  var showValidated = filters.validatedCheckbox ? filters.validatedCheckbox.getValue() : true;
 
   if (showRaster) {
     mapPanel.addLayer(rasterData.select('prob_class0'), {
@@ -849,6 +893,25 @@ function updateVisualization() {
     mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, 'Polígonos Detectados');
   }
 
+  // Filtrar e adicionar camada de lixões validados
+  var filteredValidated = validatedDumpsData;
+
+  if (state !== 'Todos') {
+    filteredValidated = filteredValidated.filter(ee.Filter.eq('uf', state));
+  }
+
+  if (muni !== 'Todos' && muni !== null) {
+    filteredValidated = filteredValidated.filter(ee.Filter.eq('muni_name', muni));
+  }
+
+  // Aplicar estilo especial (sempre aplicar para uso no onClick)
+  var styledValidated = styleValidatedDumps(filteredValidated);
+
+  // Adicionar ao mapa se checkbox estiver marcado
+  if (showValidated) {
+    mapPanel.addLayer(styledValidated.style({styleProperty: 'style'}), {}, 'Lixões Validados ⭐');
+  }
+
   // Centralizar no filtro se específico
   if (muni !== 'Todos' && muni !== null) {
     var bounds = filteredVector.geometry().bounds();
@@ -859,37 +922,30 @@ function updateVisualization() {
   }
   
   // Atualizar métricas
-  updateMetrics(filteredVector, metric);
+  updateMetrics(filteredVector, metric, filteredValidated);
   
   // Configurar clique para popup
   mapPanel.onClick(function(coords) {
     var point = ee.Geometry.Point(coords.lon, coords.lat);
-    var clicked = styledVector.filterBounds(point);
 
-    clicked.evaluate(function(features) {
-      if (features.features.length > 0) {
-        var feat = features.features[0];
+    // Primeiro verificar se é um lixão validado
+    var clickedValidated = styledValidated ? styledValidated.filterBounds(point) : ee.FeatureCollection([]);
+
+    clickedValidated.evaluate(function(validatedFeatures) {
+      if (validatedFeatures.features.length > 0) {
+        // Mostrar popup para lixão validado
+        var feat = validatedFeatures.features[0];
         var props = feat.properties;
 
-        var prob = props[metric] * 100;
-        var probText = prob.toFixed(1).replace('.', ',') + '%';
-
-        // Determinar a faixa de probabilidade
-        var faixa = '';
-        if (prob < 75) {
-          faixa = 'Baixa';
-        } else if (prob < 89) {
-          faixa = 'Média';
-        } else {
-          faixa = 'Alta';
-        }
+        var area = props.area_m2 ? (props.area_m2 / 10000).toFixed(2) : 'N/A';
+        var probText = props.prob_mean ? (props.prob_mean * 100).toFixed(1).replace('.', ',') + '%' : 'N/A';
 
         var infoPanel = ui.Panel({
           widgets: [
-            ui.Label('INFORMAÇÕES DA ÁREA', {
+            ui.Label('⭐ LIXÃO VALIDADO ⭐', {
               fontWeight: 'bold',
-              fontSize: '13px',
-              color: '#1a252f',
+              fontSize: '14px',
+              color: '#FFA500',
               margin: '0 0 10px 0',
               backgroundColor: 'rgba(0,0,0,0)',
               padding: '6px',
@@ -908,31 +964,111 @@ function updateVisualization() {
               margin: '4px 0',
               fontWeight: '600'
             }),
+            ui.Label('Área: ' + area + ' hectares', {
+              fontSize: '12px',
+              color: '#2c3e50',
+              margin: '4px 0',
+              fontWeight: '600'
+            }),
             ui.Label('Probabilidade: ' + probText, {
               fontSize: '13px',
-              color: prob >= 89 ? '#c62828' : (prob >= 75 ? '#ef6c00' : '#2e7d32'),
+              color: '#FFA500',
               fontWeight: 'bold',
               margin: '8px 0 4px 0'
             }),
-            ui.Label('Classificação: ' + faixa.toUpperCase(), {
-              fontSize: '11px',
-              color: '#7f8c8d',
+            ui.Label('Status: CONFIRMADO', {
+              fontSize: '12px',
+              color: '#27ae60',
               fontStyle: 'italic',
-              margin: '0'
+              fontWeight: 'bold',
+              margin: '4px 0 0 0'
             })
           ],
           style: {
             position: 'bottom-left',
             backgroundColor: 'rgba(0,0,0,0)',
             padding: '16px 18px',
-            border: '3px solid #2c3e50',
+            border: '4px solid #FFA500',
             borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: '0 4px 12px rgba(255,165,0,0.4)',
             maxWidth: '280px'
           }
         });
 
         mapPanel.add(infoPanel);
+      } else {
+        // Se não for validado, verificar polígonos normais
+        var clicked = styledVector.filterBounds(point);
+
+        clicked.evaluate(function(features) {
+          if (features.features.length > 0) {
+            var feat = features.features[0];
+            var props = feat.properties;
+
+            var prob = props[metric] * 100;
+            var probText = prob.toFixed(1).replace('.', ',') + '%';
+
+            // Determinar a faixa de probabilidade
+            var faixa = '';
+            if (prob < 75) {
+              faixa = 'Baixa';
+            } else if (prob < 89) {
+              faixa = 'Média';
+            } else {
+              faixa = 'Alta';
+            }
+
+            var infoPanel = ui.Panel({
+              widgets: [
+                ui.Label('INFORMAÇÕES DA ÁREA', {
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  color: '#1a252f',
+                  margin: '0 0 10px 0',
+                  backgroundColor: 'rgba(0,0,0,0)',
+                  padding: '6px',
+                  textAlign: 'center',
+                  stretch: 'horizontal'
+                }),
+                ui.Label('Estado: ' + props.uf, {
+                  fontSize: '12px',
+                  color: '#2c3e50',
+                  margin: '4px 0',
+                  fontWeight: '600'
+                }),
+                ui.Label('Município: ' + props.muni_name, {
+                  fontSize: '12px',
+                  color: '#2c3e50',
+                  margin: '4px 0',
+                  fontWeight: '600'
+                }),
+                ui.Label('Probabilidade: ' + probText, {
+                  fontSize: '13px',
+                  color: prob >= 89 ? '#c62828' : (prob >= 75 ? '#ef6c00' : '#2e7d32'),
+                  fontWeight: 'bold',
+                  margin: '8px 0 4px 0'
+                }),
+                ui.Label('Classificação: ' + faixa.toUpperCase(), {
+                  fontSize: '11px',
+                  color: '#7f8c8d',
+                  fontStyle: 'italic',
+                  margin: '0'
+                })
+              ],
+              style: {
+                position: 'bottom-left',
+                backgroundColor: 'rgba(0,0,0,0)',
+                padding: '16px 18px',
+                border: '3px solid #2c3e50',
+                borderRadius: '6px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                maxWidth: '280px'
+              }
+            });
+
+            mapPanel.add(infoPanel);
+          }
+        });
       }
     });
   });
@@ -942,7 +1078,7 @@ function updateVisualization() {
  * Atualiza painel de métricas
  * Calcula e exibe estatísticas sobre os polígonos filtrados
  */
-function updateMetrics(features, probColumn) {
+function updateMetrics(features, probColumn, validatedFeatures) {
   if (!metrics) {
     return;
   }
@@ -969,6 +1105,12 @@ function updateMetrics(features, probColumn) {
   metrics.medLabel.setValue('Média: ' + rangeStats.media + ' áreas');
   metrics.highLabel.setValue('Alta: ' + rangeStats.alta + ' áreas');
 
+  // Calcular contagem de lixões validados
+  var validatedCount = validatedFeatures ? validatedFeatures.size().getInfo() : 0;
+  var formattedValidated = validatedCount
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
   if (headerSummary) {
     headerSummary.totalSummaryLabel.setValue(formattedTotal);
     headerSummary.avgSummaryLabel.setValue(avgProbValue + '%');
@@ -977,6 +1119,7 @@ function updateMetrics(features, probColumn) {
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, '.')
     );
+    headerSummary.validatedSummaryLabel.setValue(formattedValidated);
   }
 }
 
@@ -988,6 +1131,8 @@ function updateMetrics(features, probColumn) {
 print('Carregando dados...');
 var rasterData = loadRasterData();
 var vectorData = loadVectorData();
+var validatedDumpsData = loadValidatedDumpsData();
+print('Dados de lixões validados carregados');
 
 // Detectar colunas disponíveis
 var probColumns = detectProbabilityColumns(vectorData);
