@@ -5,8 +5,8 @@
 var CONFIG = {
   // Assets
   rasterFolder: 'projects/ee-lixoes/assets/FINAL_RESULTS_BIN',
-  vectorAsset: 'projects/lixoes-467518/assets/resultsVect/MEDIAN_IMPROVED_THRESHOLDS_70_MIN_AREAS_1000_SCIKIT_ALL_METRICS_V6',
-  validatedVectorAsset: 'projects/ee-lixoes/assets/Polygons/PolygonsDumpValid',
+  vectorAsset: 'projects/ee-lixoes/assets/RESULTADOS_VECT/METHOD2_IMPROVED_THRESHOLDS_73_MIN_AREAS_1500_FV',
+  validatedVectorAsset: 'projects/ee-lixoes/assets/Polygons/PolygonsDumpValid_FV',
   
   // Visualização
   probabilityPalette: ['#050220', '#0f567f', '#1e90ff', '#6dc07a', '#efff36', '#FF0000'],
@@ -152,73 +152,41 @@ function calculateStatsByState(vectorData, probColumn) {
 // ===========================
 
 /**
- * Estilo para features vetoriais por probabilidade
- * Usa as faixas definidas em CONFIG.probabilityRanges
- * Polígonos de alta probabilidade recebem destaque visual
+ * Cria estilo dinâmico para FeatureView com base na métrica selecionada
  */
-function getFeatureStyle(feature, probColumn) {
-  var prob = ee.Number(feature.get(probColumn));
-
-  // Paleta de cores baseada nas faixas de probabilidade
-  // Baixa (0-0.75): Verde - #4CAF50
-  // Média (0.75-0.89): Laranja - #FF9800
-  // Alta (0.89-1.0): Vermelho - #F44336
-  var color = ee.Algorithms.If(
-    prob.lt(0.75), '#4CAF50',
-    ee.Algorithms.If(
-      prob.lt(0.89), '#FF9800',
-      '#F44336'
-    )
-  );
-
-  // Destaque para polígonos de alta probabilidade
-  // Alta probabilidade: borda mais grossa (3px) e opacidade máxima (0.95)
-  // Média probabilidade: borda média (2px) e opacidade alta (0.85)
-  // Baixa probabilidade: borda fina (1.5px) e opacidade média (0.65)
-  var borderWidth = ee.Algorithms.If(
-    prob.lt(0.75), 1.5,
-    ee.Algorithms.If(
-      prob.lt(0.89), 2,
-      3
-    )
-  );
-
-  var fillOpacity = ee.Algorithms.If(
-    prob.lt(0.75), 0.65,
-    ee.Algorithms.If(
-      prob.lt(0.89), 0.85,
-      0.95
-    )
-  );
-
-  return feature.set({
-    style: {
-      color: color,      // Borda preta para maior contraste
-      fillColor: color,
-      width: borderWidth,
-      fillOpacity: fillOpacity
-    }
-  });
-}
-
-/**
- * Aplica estilo ao vetor
- */
-function styleVector(vectorData, probColumn) {
-  return vectorData.map(function(feature) {
-    return getFeatureStyle(feature, probColumn);
-  });
-}
-
-/**
- * Estilo destacado para lixões validados
- */
-function styleValidatedSites(validatedCollection) {
-  return validatedCollection.style({
-    color: '#F31212',
-    fillColor: '#F31212',
-    width: 3
-  });
+function createFeatureViewStyle(metric) {
+  return {
+    color: '#4CAF50',
+    fillColor: '#4CAF50',
+    width: 1.5,
+    fillOpacity: 0.65,
+    rules: [
+      {
+        filter: ee.Filter.lt(metric, 0.75),
+        color: '#4CAF50',
+        fillColor: '#4CAF50',
+        width: 1.5,
+        fillOpacity: 0.65
+      },
+      {
+        filter: ee.Filter.and(
+          ee.Filter.gte(metric, 0.75),
+          ee.Filter.lt(metric, 0.89)
+        ),
+        color: '#FF9800',
+        fillColor: '#FF9800',
+        width: 2,
+        fillOpacity: 0.85
+      },
+      {
+        filter: ee.Filter.gte(metric, 0.89),
+        color: '#F44336',
+        fillColor: '#F44336',
+        width: 3,
+        fillOpacity: 0.95
+      }
+    ]
+  };
 }
 
 // ===========================
@@ -836,10 +804,15 @@ function updateVisualization() {
     filteredValidated = filteredValidated.filter(ee.Filter.eq('muni_name', muni));
   }
 
-  // Aplicar estilo
-  var styledVector = styleVector(filteredVector, metric);
-  var styledValidated = styleValidatedSites(filteredValidated);
-  
+  // Filtro para FeatureView
+  var viewFilter = ee.Filter.alwaysTrue();
+  if (state !== 'Todos') {
+    viewFilter = viewFilter.and(ee.Filter.eq('uf', state));
+  }
+  if (muni !== 'Todos' && muni !== null) {
+    viewFilter = viewFilter.and(ee.Filter.eq('muni_name', muni));
+  }
+
   // Adicionar camadas ao mapa
   // Raster com opacidade fixa para visualização sobre satélite
   var opacity = 1;
@@ -856,11 +829,23 @@ function updateVisualization() {
 
   // Vetor com estilo otimizado
   if (showVector) {
-    mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, 'Polígonos Detectados');
+    var vectorLayer = ui.Map.FeatureViewLayer(CONFIG.vectorAsset);
+    vectorLayer.setName('Polígonos Detectados');
+    vectorLayer.setStyle(createFeatureViewStyle(metric));
+    vectorLayer.setQuery({filter: viewFilter});
+    mapPanel.layers().add(vectorLayer);
   }
 
   // Camada de lixões validados com destaque
-  mapPanel.addLayer(styledValidated, {}, 'Lixões Validados', true, 0.95);
+  var validatedLayer = ui.Map.FeatureViewLayer(CONFIG.validatedVectorAsset);
+  validatedLayer.setName('Lixões Validados');
+  validatedLayer.setStyle({
+    color: '#F31212',
+    fillColor: '#F31212',
+    width: 3
+  });
+  validatedLayer.setQuery({filter: viewFilter});
+  mapPanel.layers().add(validatedLayer);
 
   // Centralizar no filtro se específico
   if (muni !== 'Todos' && muni !== null) {
@@ -877,7 +862,7 @@ function updateVisualization() {
   // Configurar clique para popup
   mapPanel.onClick(function(coords) {
     var point = ee.Geometry.Point(coords.lon, coords.lat);
-    var clicked = styledVector.filterBounds(point);
+    var clicked = filteredVector.filterBounds(point);
 
     clicked.evaluate(function(features) {
       if (features.features.length > 0) {
