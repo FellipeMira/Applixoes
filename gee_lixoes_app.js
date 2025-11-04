@@ -241,7 +241,7 @@ var sidePanel = ui.Panel({
   style: {
     width: '430px',
     padding: '16px',
-    backgroundColor: '#ecf0f1'
+    backgroundColor: 'rgba(0,0,0,0)'
   }
 });
 
@@ -505,7 +505,7 @@ function createFilterSection(vectorData, probColumns) {
   var separator = ui.Panel({
     style: {
       height: '1px',
-      backgroundColor: '#bdc3c7',
+      backgroundColor: 'rgba(0,0,0,0)',
       margin: '15px 0'
     }
   });
@@ -884,7 +884,7 @@ function updateVisualization() {
               fontSize: '13px',
               color: '#1a252f',
               margin: '0 0 10px 0',
-              backgroundColor: '#ecf0f1',
+              backgroundColor: 'rgba(0,0,0,0)',
               padding: '6px',
               textAlign: 'center',
               stretch: 'horizontal'
@@ -916,7 +916,7 @@ function updateVisualization() {
           ],
           style: {
             position: 'bottom-left',
-            backgroundColor: 'rgba(255, 255, 255, 0.97)',
+            backgroundColor: 'rgba(0,0,0,0)',
             padding: '16px 18px',
             border: '3px solid #2c3e50',
             borderRadius: '6px',
