@@ -1,28 +1,3 @@
-/**
- * =====================================================
- * APLICATIVO GOOGLE EARTH ENGINE
- * Análise de Probabilidade de Lixões
- * =====================================================
- *
- * DESCRIÇÃO:
- * Sistema interativo de visualização e análise espacial para
- * identificação de áreas com probabilidade de lixões utilizando
- * dados raster e vetoriais processados no Google Earth Engine.
- *
- * FUNCIONALIDADES:
- * - Base map híbrido (satélite + nomes) para melhor contexto
- * - Visualização com paleta otimizada (azul escuro → vermelho)
- * - Destaque visual para polígonos de alta probabilidade
- * - Filtros espaciais por estado e município
- * - Métricas agregadas e distribuição por faixa
- * - Popup informativo ao clicar em polígonos
- * - Interface otimizada para renderização
- *
- * VERSÃO: 2.0 - Otimizada e Melhorada
- * DESENVOLVIDO COM: Google Earth Engine Code Editor
- * =====================================================
- */
-
 // ===========================
 // CONFIGURAÇÕES E CONSTANTES
 // ===========================
@@ -41,8 +16,8 @@ var CONFIG = {
   // Faixas de probabilidade
   probabilityRanges: {
     baixa: [0, 0.76],
-    media: [0.76, 0.81],
-    alta: [0.81, 1.0]
+    media: [0.76, 0.832],
+    alta: [0.832, 1.0]
   }
 };
 
@@ -240,10 +215,9 @@ function styleVector(vectorData, probColumn) {
  */
 function styleValidatedSites(validatedCollection) {
   return validatedCollection.style({
-    color: '#f39c12',
-    fillColor: '#f1c40f66',
-    width: 3,
-    fillOpacity: 0.2
+    color: '#F31212',
+    fillColor: '#F31212',
+    width: 3
   });
 }
 
@@ -404,12 +378,12 @@ function createAppHeader() {
   }
 
   var totalSummary = createSummaryCard('Ocorrências monitoradas', '#4fc3f7');
-  var avgSummary = createSummaryCard('Probabilidade média', '#81c784');
+  // var avgSummary = createSummaryCard('Probabilidade média', '#81c784');
   var highSummary = createSummaryCard('Áreas de alta probabilidade', '#ff8a65');
   var validatedSummary = createSummaryCard('Lixões validados', '#f1c40f');
 
   summaryRow.add(totalSummary.card);
-  summaryRow.add(avgSummary.card);
+  // summaryRow.add(avgSummary.card);
   summaryRow.add(highSummary.card);
   summaryRow.add(validatedSummary.card);
   validatedSummary.card.style().set('margin', '0');
@@ -420,7 +394,7 @@ function createAppHeader() {
     panel: header,
     filterLabel: filterContextLabel,
     totalSummaryLabel: totalSummary.valueLabel,
-    avgSummaryLabel: avgSummary.valueLabel,
+    // avgSummaryLabel: avgSummary.valueLabel,
     highSummaryLabel: highSummary.valueLabel,
     validatedSummaryLabel: validatedSummary.valueLabel
   };
@@ -1017,7 +991,7 @@ function updateMetrics(features, validatedFeatures, probColumn) {
 
   if (headerSummary) {
     headerSummary.totalSummaryLabel.setValue(formattedTotal);
-    headerSummary.avgSummaryLabel.setValue(avgProbValue + '%');
+    // headerSummary.avgSummaryLabel.setValue(avgProbValue + '%');
     headerSummary.highSummaryLabel.setValue(
       rangeStats.alta
         .toString()
