@@ -838,9 +838,11 @@ function updateVisualization() {
 
   // Vetor com estilo otimizado
   if (showVector) {
-    var vectorLayer = ui.Map.FeatureViewLayer(CONFIG.vectorFeatureView);
-    vectorLayer.setName('Polígonos Detectados');
-    vectorLayer.setStyle(createFeatureViewStyle(metric));
+    var vectorLayer = ui.Map.FeatureViewLayer(CONFIG.vectorFeatureView, {
+      name: 'Polígonos Detectados',
+      shown: true,
+      style: createFeatureViewStyle(metric)
+    });
     if (viewFilter) {
       vectorLayer.setQuery({filter: viewFilter});
     } else {
@@ -850,12 +852,14 @@ function updateVisualization() {
   }
 
   // Camada de lixões validados com destaque
-  var validatedLayer = ui.Map.FeatureViewLayer(CONFIG.validatedFeatureView);
-  validatedLayer.setName('Lixões Validados');
-  validatedLayer.setStyle({
-    color: '#F31212',
-    fillColor: '#F31212',
-    width: 3
+  var validatedLayer = ui.Map.FeatureViewLayer(CONFIG.validatedFeatureView, {
+    name: 'Lixões Validados',
+    shown: true,
+    style: {
+      color: '#F31212',
+      fillColor: '#F31212',
+      width: 3
+    }
   });
   if (viewFilter) {
     validatedLayer.setQuery({filter: viewFilter});
