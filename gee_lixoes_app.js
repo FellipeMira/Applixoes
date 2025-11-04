@@ -236,6 +236,8 @@ var mainPanel = ui.Panel({
   style: {width: '100%', height: '100%'}
 });
 
+mainPanel.style().set('stretch', 'both');
+
 var sidePanel = ui.Panel({
   style: {
     width: '430px',
@@ -244,52 +246,65 @@ var sidePanel = ui.Panel({
   }
 });
 
+sidePanel.style().set('stretch', 'vertical');
+
 var mapPanel = ui.Map();
 mapPanel.setCenter(CONFIG.mapCenter.lon, CONFIG.mapCenter.lat, CONFIG.mapZoom);
 mapPanel.setOptions('hybrid'); // Base map híbrido (satélite + nomes)
 mapPanel.style().set('cursor', 'crosshair');
+mapPanel.style().set('stretch', 'both');
 
 // ===========================
 // CONSTRUÇÃO DA UI
 // ===========================
 
 /**
- * Cria cabeçalho do aplicativo
- * Otimizado para renderização correta no GEE
+ * Cria cabeçalho do aplicativo com título destacado
  */
-function createHeader() {
+function createAppHeader() {
   var header = ui.Panel({
+    layout: ui.Panel.Layout.flow('horizontal'),
+    style: {
+      width: '100%',
+      padding: '20px 28px',
+      backgroundColor: '#0b1f33',
+      borderBottom: '3px solid #176087'
+    }
+  });
+
+  var titleColumn = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
-      backgroundColor: '#1a252f',
-      padding: '20px 16px',
-      margin: '0 0 15px 0'
+      stretch: 'horizontal'
     }
   });
 
   var title = ui.Label({
     value: 'ANÁLISE DE PROBABILIDADE DE LIXÕES',
     style: {
-      fontSize: '18px',
+      fontSize: '20px',
       fontWeight: 'bold',
-      color: 'white',
-      margin: '0 0 8px 0',
-      padding: '0'
+      color: '#ffffff',
+      letterSpacing: '1px',
+      textTransform: 'uppercase',
+      margin: '0'
     }
   });
 
   var subtitle = ui.Label({
-    value: 'Sistema de Monitoramento e Análise Espacial | Google Earth Engine',
+    value: 'Monitoramento ambiental com Google Earth Engine',
     style: {
-      fontSize: '11px',
-      color: '#bdc3c7',
-      margin: '0',
-      padding: '0'
+      fontSize: '12px',
+      color: '#d0e6f4',
+      margin: '6px 0 0 0',
+      fontStyle: 'italic'
     }
   });
 
-  header.add(title);
-  header.add(subtitle);
+  titleColumn.add(title);
+  titleColumn.add(subtitle);
+
+  header.add(titleColumn);
 
   return header;
 }
@@ -640,66 +655,6 @@ function createMetricsPanel() {
 }
 
 /**
- * Cria legenda para o mapa
- * Otimizada para melhor visualização e contraste
- */
-function createLegend() {
-  var legend = ui.Panel({
-    style: {
-      position: 'bottom-right',
-      padding: '16px 20px',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      border: '3px solid #2c3e50',
-      borderRadius: '6px'
-    }
-  });
-
-  legend.add(ui.Label('PROBABILIDADE DE LIXÃO', {
-    fontWeight: 'bold',
-    fontSize: '13px',
-    color: '#1a252f',
-    margin: '0 0 12px 0',
-    textAlign: 'center',
-    stretch: 'horizontal'
-  }));
-
-  // Três faixas de probabilidade
-  var ranges = [
-    {color: '#4CAF50', label: 'Baixa', border: '#2e7d32'},
-    {color: '#FF9800', label: 'Média', border: '#e65100'},
-    {color: '#F44336', label: 'Alta', border: '#b71c1c'}
-  ];
-
-  ranges.forEach(function(range) {
-    var colorBox = ui.Label('', {
-      backgroundColor: range.color,
-      padding: '14px',
-      margin: '0 10px 0 0',
-      width: '35px',
-      border: '2px solid ' + range.border,
-      borderRadius: '3px'
-    });
-
-    var label = ui.Label(range.label, {
-      margin: '0',
-      fontSize: '12px',
-      fontWeight: '600',
-      color: '#2c3e50'
-    });
-
-    var row = ui.Panel({
-      widgets: [colorBox, label],
-      layout: ui.Panel.Layout.flow('horizontal'),
-      style: {margin: '6px 0'}
-    });
-
-    legend.add(row);
-  });
-
-  return legend;
-}
-
-/**
  * Cria título para o header do mapa
  */
 function createMapTitle() {
@@ -707,19 +662,19 @@ function createMapTitle() {
     layout: ui.Panel.Layout.flow('vertical'),
     style: {
       position: 'top-center',
-      backgroundColor: 'rgba(26, 37, 47, 0.92)',
-      padding: '12px 30px',
+      backgroundColor: 'rgba(11, 31, 51, 0.92)',
+      padding: '14px 32px',
       margin: '0',
-      border: '2px solid #34495e',
-      borderRadius: '0 0 8px 8px'
+      border: '2px solid #176087',
+      borderRadius: '0 0 10px 10px'
     }
   });
 
 var title = ui.Label('ANÁLISE DE LIXÕES', {
   fontSize: '18px',
   fontWeight: 'bold',
-  color: '#bdc3c7',
-  fontFamily: 'monospace',
+  color: '#ffffff',
+  letterSpacing: '1px',
   textAlign: 'center',
   whiteSpace: 'pre',
   margin: '0',
@@ -731,7 +686,7 @@ var title = ui.Label('ANÁLISE DE LIXÕES', {
 
 var subtitle = ui.Label('Mapeamento', {
   fontSize: '11px',
-  color: '#bdc3c7',
+  color: '#d0e6f4',
   backgroundColor: 'rgba(0,0,0,0)',   // transparente
   border: '0',                         // sem borda
   padding: '0px',
@@ -855,10 +810,6 @@ function updateVisualization() {
   if (showVector) {
     mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, 'Polígonos Detectados');
   }
-
-  // Adicionar título e legenda
-  mapPanel.add(createMapTitle());
-  mapPanel.add(createLegend());
 
   // Centralizar no filtro se específico
   if (muni !== 'Todos' && muni !== null) {
@@ -990,8 +941,6 @@ if (probColumns.length === 0) {
   print('Colunas de probabilidade disponíveis:', probColumns);
   
   // Construir interface
-  sidePanel.add(createHeader());
-
   var filterSection = createFilterSection(vectorData, probColumns);
   var filters = filterSection;
   sidePanel.add(filterSection.panel);
@@ -1003,19 +952,30 @@ if (probColumns.length === 0) {
   // Adicionar footer com logos dos apoiadores
   sidePanel.add(createFooterWithLogos());
 
-  // Adicionar título ao header do mapa
+  // Adicionar título ao mapa apenas uma vez
   mapPanel.add(createMapTitle());
-
-  // Adicionar legenda ao mapa
-  mapPanel.add(createLegend());
 
   // Montar layout principal
   mainPanel.add(sidePanel);
   mainPanel.add(mapPanel);
 
+  var appLayout = ui.Panel({
+    layout: ui.Panel.Layout.flow('vertical'),
+    style: {
+      width: '100%',
+      height: '100%',
+      padding: '0'
+    }
+  });
+
+  appLayout.style().set('stretch', 'both');
+
+  appLayout.add(createAppHeader());
+  appLayout.add(mainPanel);
+
   // Limpar root e adicionar painel principal
   ui.root.clear();
-  ui.root.add(mainPanel);
+  ui.root.add(appLayout);
 
   // Carregar visualização inicial
   updateVisualization();
