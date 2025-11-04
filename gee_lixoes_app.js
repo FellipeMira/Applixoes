@@ -807,12 +807,19 @@ function updateVisualization() {
   }
 
   // Filtro para FeatureView
-  var viewFilter = ee.Filter.alwaysTrue();
+  var activeFilters = [];
   if (state !== 'Todos') {
-    viewFilter = viewFilter.and(ee.Filter.eq('uf', state));
+    activeFilters.push(ee.Filter.eq('uf', state));
   }
   if (muni !== 'Todos' && muni !== null) {
-    viewFilter = viewFilter.and(ee.Filter.eq('muni_name', muni));
+    activeFilters.push(ee.Filter.eq('muni_name', muni));
+  }
+
+  var viewFilter = null;
+  if (activeFilters.length === 1) {
+    viewFilter = activeFilters[0];
+  } else if (activeFilters.length === 2) {
+    viewFilter = ee.Filter.and(activeFilters[0], activeFilters[1]);
   }
 
   // Adicionar camadas ao mapa
@@ -834,7 +841,11 @@ function updateVisualization() {
     var vectorLayer = ui.Map.FeatureViewLayer(CONFIG.vectorFeatureView);
     vectorLayer.setName('Polígonos Detectados');
     vectorLayer.setStyle(createFeatureViewStyle(metric));
-    vectorLayer.setQuery({filter: viewFilter});
+    if (viewFilter) {
+      vectorLayer.setQuery({filter: viewFilter});
+    } else {
+      vectorLayer.setQuery({});
+    }
     mapPanel.layers().add(vectorLayer);
   }
 
@@ -846,7 +857,11 @@ function updateVisualization() {
     fillColor: '#F31212',
     width: 3
   });
-  validatedLayer.setQuery({filter: viewFilter});
+  if (viewFilter) {
+    validatedLayer.setQuery({filter: viewFilter});
+  } else {
+    validatedLayer.setQuery({});
+  }
   mapPanel.layers().add(validatedLayer);
 
   // Centralizar no filtro se específico
