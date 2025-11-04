@@ -31,6 +31,7 @@ var CONFIG = {
   // Assets
   rasterFolder: 'projects/ee-lixoes/assets/FINAL_RESULTS_BIN',
   vectorAsset: 'projects/lixoes-467518/assets/resultsVect/MEDIAN_IMPROVED_THRESHOLDS_70_MIN_AREAS_1000_SCIKIT_ALL_METRICS_V6',
+  validatedVectorAsset: 'projects/ee-lixoes/assets/Polygons/PolygonsDumpValid',
   
   // Visualização
   probabilityPalette: ['#050220', '#0f567f', '#1e90ff', '#6dc07a', '#efff36', '#FF0000'],
@@ -75,6 +76,13 @@ function loadRasterData() {
  */
 function loadVectorData() {
   return ee.FeatureCollection(CONFIG.vectorAsset);
+}
+
+/**
+ * Carrega dados vetoriais de lixões validados
+ */
+function loadValidatedVectorData() {
+  return ee.FeatureCollection(CONFIG.validatedVectorAsset);
 }
 
 // ===========================
@@ -224,6 +232,18 @@ function getFeatureStyle(feature, probColumn) {
 function styleVector(vectorData, probColumn) {
   return vectorData.map(function(feature) {
     return getFeatureStyle(feature, probColumn);
+  });
+}
+
+/**
+ * Estilo destacado para lixões validados
+ */
+function styleValidatedSites(validatedCollection) {
+  return validatedCollection.style({
+    color: '#f39c12',
+    fillColor: '#f1c40f66',
+    width: 3,
+    fillOpacity: 0.2
   });
 }
 
@@ -386,11 +406,13 @@ function createAppHeader() {
   var totalSummary = createSummaryCard('Ocorrências monitoradas', '#4fc3f7');
   var avgSummary = createSummaryCard('Probabilidade média', '#81c784');
   var highSummary = createSummaryCard('Áreas de alta probabilidade', '#ff8a65');
+  var validatedSummary = createSummaryCard('Lixões validados', '#f1c40f');
 
   summaryRow.add(totalSummary.card);
   summaryRow.add(avgSummary.card);
   summaryRow.add(highSummary.card);
-  highSummary.card.style().set('margin', '0');
+  summaryRow.add(validatedSummary.card);
+  validatedSummary.card.style().set('margin', '0');
 
   header.add(summaryRow);
 
@@ -399,7 +421,8 @@ function createAppHeader() {
     filterLabel: filterContextLabel,
     totalSummaryLabel: totalSummary.valueLabel,
     avgSummaryLabel: avgSummary.valueLabel,
-    highSummaryLabel: highSummary.valueLabel
+    highSummaryLabel: highSummary.valueLabel,
+    validatedSummaryLabel: validatedSummary.valueLabel
   };
 }
 
@@ -625,6 +648,13 @@ function createMetricsPanel() {
     fontWeight: '600'
   });
 
+  var validatedLabel = ui.Label('Lixões validados: -', {
+    fontSize: '13px',
+    color: '#b9770e',
+    margin: '6px 0 14px 0',
+    fontWeight: '600'
+  });
+
   // Painel de distribuição por faixa
   var rangePanel = ui.Panel({
     layout: ui.Panel.Layout.flow('vertical'),
@@ -671,12 +701,14 @@ function createMetricsPanel() {
 
   metricsPanel.add(totalLabel);
   metricsPanel.add(avgProbLabel);
+  metricsPanel.add(validatedLabel);
   metricsPanel.add(rangePanel);
 
   return {
     panel: metricsPanel,
     totalLabel: totalLabel,
     avgProbLabel: avgProbLabel,
+    validatedLabel: validatedLabel,
     lowLabel: lowLabel,
     medLabel: medLabel,
     highLabel: highLabel
@@ -818,17 +850,21 @@ function updateVisualization() {
   
   // Filtrar dados vetoriais
   var filteredVector = vectorData;
-  
+  var filteredValidated = validatedData;
+
   if (state !== 'Todos') {
     filteredVector = filteredVector.filter(ee.Filter.eq('uf', state));
+    filteredValidated = filteredValidated.filter(ee.Filter.eq('uf', state));
   }
-  
+
   if (muni !== 'Todos' && muni !== null) {
     filteredVector = filteredVector.filter(ee.Filter.eq('muni_name', muni));
+    filteredValidated = filteredValidated.filter(ee.Filter.eq('muni_name', muni));
   }
-  
+
   // Aplicar estilo
   var styledVector = styleVector(filteredVector, metric);
+  var styledValidated = styleValidatedSites(filteredValidated);
   
   // Adicionar camadas ao mapa
   // Raster com opacidade fixa para visualização sobre satélite
@@ -849,6 +885,9 @@ function updateVisualization() {
     mapPanel.addLayer(styledVector.style({styleProperty: 'style'}), {}, 'Polígonos Detectados');
   }
 
+  // Camada de lixões validados com destaque
+  mapPanel.addLayer(styledValidated, {}, 'Lixões Validados', true, 0.95);
+
   // Centralizar no filtro se específico
   if (muni !== 'Todos' && muni !== null) {
     var bounds = filteredVector.geometry().bounds();
@@ -859,7 +898,7 @@ function updateVisualization() {
   }
   
   // Atualizar métricas
-  updateMetrics(filteredVector, metric);
+  updateMetrics(filteredVector, filteredValidated, metric);
   
   // Configurar clique para popup
   mapPanel.onClick(function(coords) {
@@ -942,13 +981,14 @@ function updateVisualization() {
  * Atualiza painel de métricas
  * Calcula e exibe estatísticas sobre os polígonos filtrados
  */
-function updateMetrics(features, probColumn) {
+function updateMetrics(features, validatedFeatures, probColumn) {
   if (!metrics) {
     return;
   }
 
   var count = features.size();
   var avgProb = features.aggregate_mean(probColumn);
+  var validatedCount = validatedFeatures ? validatedFeatures.size() : ee.Number(0);
 
   // Atualizar labels básicos com formatação aprimorada
   var totalOcorrencias = count.getInfo();
@@ -962,6 +1002,12 @@ function updateMetrics(features, probColumn) {
     ? (avgProbInfo * 100).toFixed(1).replace('.', ',')
     : '0,0';
   metrics.avgProbLabel.setValue('Probabilidade média: ' + avgProbValue + '%');
+
+  var validatedTotal = validatedCount.getInfo();
+  var formattedValidated = validatedTotal
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  metrics.validatedLabel.setValue('Lixões validados: ' + formattedValidated);
 
   // Calcular e exibir distribuição por faixa de probabilidade
   var rangeStats = calculateStatsByRange(features, probColumn);
@@ -977,6 +1023,9 @@ function updateMetrics(features, probColumn) {
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, '.')
     );
+    if (headerSummary.validatedSummaryLabel) {
+      headerSummary.validatedSummaryLabel.setValue(formattedValidated);
+    }
   }
 }
 
@@ -988,6 +1037,7 @@ function updateMetrics(features, probColumn) {
 print('Carregando dados...');
 var rasterData = loadRasterData();
 var vectorData = loadVectorData();
+var validatedData = loadValidatedVectorData();
 
 // Detectar colunas disponíveis
 var probColumns = detectProbabilityColumns(vectorData);
