@@ -184,23 +184,20 @@ function styleVectorOptimized(vectorData, probColumn) {
   // Aplicar estilo direto a cada grupo (não feature por feature)
   var styledLow = lowProb.style({
     color: '#4CAF50',
-    fillColor: '#4CAF50',
-    width: 1.5,
-    fillOpacity: 0.65
+    fillColor: '#4CAF50A6',
+    width: 1.5
   });
 
   var styledMed = medProb.style({
     color: '#FF9800',
-    fillColor: '#FF9800',
-    width: 2,
-    fillOpacity: 0.85
+    fillColor: '#FF9800D9',
+    width: 2
   });
 
   var styledHigh = highProb.style({
     color: '#F44336',
-    fillColor: '#F44336',
-    width: 3,
-    fillOpacity: 0.95
+    fillColor: '#F44336F2',
+    width: 3
   });
 
   // Retornar os 3 grupos estilizados
